@@ -15,6 +15,8 @@ from pydantic_ai import Agent
 import chromadb
 from chromadb.config import Settings
 
+from datascienceagent.model_utils import process_model
+
 
 # ============================================================================
 # DATA MODELS
@@ -459,9 +461,10 @@ class ContextSummarizer:
     """
     
     def __init__(self, model: str = "openai:gpt-4"):
-        self.model = model
+        self.model = process_model(model)
+    
         self.agent = Agent(
-            model,
+            self.model,
             system_prompt="""You are an expert at summarizing complex analysis context.
 
 Your role is to:
@@ -833,8 +836,8 @@ class ContextAwareAgent:
     ):
         self.name = name
         self.context_manager = context_manager
-        self.model = model
-        self.agent = Agent(model, system_prompt=self.get_system_prompt())
+        self.model = process_model(model)
+        self.agent = Agent(self.model, system_prompt=self.get_system_prompt())
     
     def get_system_prompt(self) -> str:
         """Override in subclasses"""
@@ -934,7 +937,8 @@ async def demo_context_system():
     # Initialize context manager
     context_mgr = ContextManager(
         persist_directory="./demo_chroma_db",
-        chunk_size=500
+        chunk_size=500,
+        model="ollama:llama3.2"
     )
     
     # Session 1: First analysis
@@ -1084,7 +1088,7 @@ async def example_context_aware_modeling():
     print("="*70)
     
     # Initialize
-    context_mgr = ContextManager()
+    context_mgr = ContextManager(model="ollama:llama3.2")
     context_mgr.start_session(topic="time_series_forecasting")
     
     # Create context-aware agent
@@ -1093,7 +1097,7 @@ async def example_context_aware_modeling():
             return """You are a statistical modeling expert.
             You build models, considering past successful approaches."""
     
-    modeler = ContextAwareModeler("modeler", context_mgr)
+    modeler = ContextAwareModeler("modeler", context_mgr, model="ollama:llama3.2")
     
     # Execute with automatic context
     result = await modeler.execute_with_context(

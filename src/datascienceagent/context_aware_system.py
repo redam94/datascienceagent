@@ -10,6 +10,8 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
+from datascienceagent.model_utils import process_model
+
 # Import context management (in production, use proper imports)
 # from context_management_system import (
 #     ContextManager, ContextType, ContextAwareAgent
@@ -31,7 +33,7 @@ class ContextAwareOrchestrator:
         context_manager = None,  # ContextManager instance
         agents: Optional[Dict[str, Any]] = None
     ):
-        self.model = model
+        self.model = process_model(model)
         self.context_manager = context_manager
         self.agents = agents or {}
         
@@ -53,7 +55,7 @@ Use this context to:
 
 Be specific about how you're using historical context."""
 
-        self.agent = Agent(model, system_prompt=self.system_prompt)
+        self.agent = Agent(self.model, system_prompt=self.system_prompt)
     
     async def plan_analysis_with_context(
         self,
@@ -360,8 +362,8 @@ class ContextAwareModeler:
     def __init__(self, context_manager, model: str = "openai:gpt-4"):
         self.name = "modeling_agent"
         self.context_manager = context_manager
-        self.model = model
-        self.agent = Agent(model, system_prompt=self.get_system_prompt())
+        self.model = process_model(model)
+        self.agent = Agent(self.model, system_prompt=self.get_system_prompt())
     
     def get_system_prompt(self) -> str:
         return """You are a statistical modeling expert with access to successful code patterns.
