@@ -10,11 +10,11 @@ from typing import Dict, Any
 
 # In production, use proper imports
 # from data_science_agent_system import (
-#     OrchestratorAgent, Task, TaskType, TaskStatus, 
+#     OrchestratorAgent, Task, TaskType, TaskStatus,
 #     BaseDataScienceAgent, AgentResponse
 # )
 # from specialized_agents import (
-#     StatisticianAgent, DataEngineerAgent, 
+#     StatisticianAgent, DataEngineerAgent,
 #     EDAAgent, ModelingAgent, InterpreterAgent
 # )
 
@@ -22,6 +22,7 @@ from typing import Dict, Any
 # ============================================================================
 # FIXTURES
 # ============================================================================
+
 
 @pytest.fixture
 def sample_data_info():
@@ -34,13 +35,9 @@ def sample_data_info():
             "x1": "float",
             "x2": "float",
             "category": "str",
-            "y": "float"
+            "y": "float",
         },
-        "missing_values": {
-            "x1": 0,
-            "x2": 5,
-            "y": 0
-        }
+        "missing_values": {"x1": 0, "x2": 5, "y": 0},
     }
 
 
@@ -65,9 +62,10 @@ async def orchestrator():
 # UNIT TESTS - BASE AGENT
 # ============================================================================
 
+
 class TestBaseAgent:
     """Tests for base agent functionality"""
-    
+
     @pytest.mark.asyncio
     async def test_agent_initialization(self):
         """Test agent can be initialized"""
@@ -75,21 +73,21 @@ class TestBaseAgent:
         # assert agent.name == "test_agent"
         # assert agent.capabilities == []
         pass
-    
+
     @pytest.mark.asyncio
     async def test_agent_can_handle_task(self):
         """Test agent task handling logic"""
         # agent = BaseDataScienceAgent("test_agent")
         # agent.capabilities = [TaskType.RESEARCH]
-        # 
+        #
         # task = Task(
         #     type=TaskType.RESEARCH,
         #     description="Test task"
         # )
-        # 
+        #
         # assert agent.can_handle(task) is True
         pass
-    
+
     @pytest.mark.asyncio
     async def test_agent_error_handling(self):
         """Test agent handles errors gracefully"""
@@ -101,14 +99,15 @@ class TestBaseAgent:
 # UNIT TESTS - STATISTICIAN AGENT
 # ============================================================================
 
+
 class TestStatisticianAgent:
     """Tests for statistician agent"""
-    
+
     @pytest.mark.asyncio
     async def test_method_recommendation(self):
         """Test agent recommends appropriate methods"""
         # agent = StatisticianAgent()
-        # 
+        #
         # task = Task(
         #     type=TaskType.RESEARCH,
         #     description="Continuous outcome, multiple predictors",
@@ -117,20 +116,20 @@ class TestStatisticianAgent:
         #         "n_predictors": 3
         #     }
         # )
-        # 
+        #
         # response = await agent.execute_task(task)
-        # 
+        #
         # assert response.status == "success"
         # assert "linear_regression" in str(response.result).lower() or "ols" in str(response.result).lower()
         pass
-    
+
     @pytest.mark.asyncio
     async def test_assumption_identification(self):
         """Test agent identifies key assumptions"""
         # agent = StatisticianAgent()
-        # 
+        #
         # response = await agent.execute_task(...)
-        # 
+        #
         # assumptions = response.result.get("assumptions", [])
         # assert "linearity" in [a.lower() for a in assumptions]
         # assert "independence" in [a.lower() for a in assumptions]
@@ -141,14 +140,15 @@ class TestStatisticianAgent:
 # UNIT TESTS - DATA ENGINEER AGENT
 # ============================================================================
 
+
 class TestDataEngineerAgent:
     """Tests for data engineer agent"""
-    
+
     @pytest.mark.asyncio
     async def test_data_loading(self):
         """Test agent can load data"""
         # agent = DataEngineerAgent()
-        # 
+        #
         # task = Task(
         #     type=TaskType.LOAD_DATA,
         #     description="Load CSV data",
@@ -159,19 +159,19 @@ class TestDataEngineerAgent:
         #         }
         #     }
         # )
-        # 
+        #
         # response = await agent.execute_task(task)
-        # 
+        #
         # assert response.status == "success"
         # assert "data_loaded" in response.result
         pass
-    
+
     @pytest.mark.asyncio
     async def test_data_validation(self):
         """Test agent validates data quality"""
         # Should check for missing values, data types, etc.
         pass
-    
+
     @pytest.mark.asyncio
     async def test_script_generation(self):
         """Test agent generates valid loading scripts"""
@@ -183,32 +183,33 @@ class TestDataEngineerAgent:
 # UNIT TESTS - EDA AGENT
 # ============================================================================
 
+
 class TestEDAAgent:
     """Tests for EDA agent"""
-    
+
     @pytest.mark.asyncio
     async def test_plot_generation(self, sample_data_info):
         """Test agent generates appropriate plots"""
         # agent = EDAAgent()
-        # 
+        #
         # task = Task(
         #     type=TaskType.EDA,
         #     description="Explore data",
         #     input_data=sample_data_info
         # )
-        # 
+        #
         # response = await agent.execute_task(task)
-        # 
+        #
         # assert response.status == "success"
         # assert len(response.result["plots"]) > 0
         pass
-    
+
     @pytest.mark.asyncio
     async def test_distribution_analysis(self):
         """Test agent analyzes distributions"""
         # Should identify skewness, outliers, etc.
         pass
-    
+
     @pytest.mark.asyncio
     async def test_correlation_detection(self):
         """Test agent detects correlations"""
@@ -219,14 +220,15 @@ class TestEDAAgent:
 # UNIT TESTS - MODELING AGENT
 # ============================================================================
 
+
 class TestModelingAgent:
     """Tests for modeling agent"""
-    
+
     @pytest.mark.asyncio
     async def test_statsmodels_implementation(self):
         """Test agent implements statsmodels correctly"""
         # agent = ModelingAgent()
-        # 
+        #
         # task = Task(
         #     type=TaskType.MODELING,
         #     description="Fit OLS model",
@@ -235,19 +237,19 @@ class TestModelingAgent:
         #         "formula": "y ~ x1 + x2"
         #     }
         # )
-        # 
+        #
         # response = await agent.execute_task(task)
-        # 
+        #
         # assert response.status == "success"
         # assert "coefficients" in response.result["model"]
         pass
-    
+
     @pytest.mark.asyncio
     async def test_diagnostics_included(self):
         """Test agent includes diagnostic tests"""
         # Should include residual analysis, assumption tests
         pass
-    
+
     @pytest.mark.asyncio
     async def test_code_generation(self):
         """Test agent generates valid modeling code"""
@@ -259,36 +261,37 @@ class TestModelingAgent:
 # UNIT TESTS - INTERPRETER AGENT
 # ============================================================================
 
+
 class TestInterpreterAgent:
     """Tests for interpreter agent"""
-    
+
     @pytest.mark.asyncio
     async def test_coefficient_interpretation(self):
         """Test agent interprets coefficients correctly"""
         # agent = InterpreterAgent()
-        # 
+        #
         # model_results = {
         #     "coefficients": {"x1": 2.5, "x2": -1.3},
         #     "statistics": {"r_squared": 0.75}
         # }
-        # 
+        #
         # task = Task(
         #     type=TaskType.INTERPRETATION,
         #     description="Interpret results",
         #     input_data={"model": model_results}
         # )
-        # 
+        #
         # response = await agent.execute_task(task)
-        # 
+        #
         # assert response.status == "success"
         # assert "interpretation" in response.result
         pass
-    
+
     @pytest.mark.asyncio
     async def test_practical_significance(self):
         """Test agent assesses practical significance"""
         pass
-    
+
     @pytest.mark.asyncio
     async def test_report_generation(self):
         """Test agent generates complete reports"""
@@ -299,30 +302,31 @@ class TestInterpreterAgent:
 # INTEGRATION TESTS - ORCHESTRATOR
 # ============================================================================
 
+
 class TestOrchestrator:
     """Tests for orchestrator"""
-    
+
     @pytest.mark.asyncio
     async def test_plan_creation(self, sample_analysis_query):
         """Test orchestrator creates valid plans"""
         # orchestrator = OrchestratorAgent()
         # plan = await orchestrator.plan_analysis(sample_analysis_query)
-        # 
+        #
         # assert len(plan.tasks) > 0
         # assert all(task.type in TaskType for task in plan.tasks)
         pass
-    
+
     @pytest.mark.asyncio
     async def test_dependency_resolution(self):
         """Test orchestrator resolves task dependencies correctly"""
         # Should execute tasks in correct order
         pass
-    
+
     @pytest.mark.asyncio
     async def test_task_routing(self):
         """Test orchestrator routes tasks to correct agents"""
         pass
-    
+
     @pytest.mark.asyncio
     async def test_error_propagation(self):
         """Test orchestrator handles agent failures"""
@@ -334,9 +338,10 @@ class TestOrchestrator:
 # INTEGRATION TESTS - FULL WORKFLOW
 # ============================================================================
 
+
 class TestFullWorkflow:
     """End-to-end workflow tests"""
-    
+
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_simple_regression_workflow(self):
@@ -349,13 +354,13 @@ class TestFullWorkflow:
         # 5. Interpretation
         # 6. Report generation
         pass
-    
+
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_complex_analysis_workflow(self):
         """Test complex multi-stage analysis"""
         pass
-    
+
     @pytest.mark.asyncio
     async def test_workflow_with_errors(self):
         """Test workflow handles errors appropriately"""
@@ -366,17 +371,18 @@ class TestFullWorkflow:
 # API TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 class TestAPI:
     """Tests for FastAPI endpoints"""
-    
+
     async def test_health_check(self, client):
         """Test health check endpoint"""
         # response = client.get("/health")
         # assert response.status_code == 200
         # assert response.json()["status"] == "healthy"
         pass
-    
+
     async def test_start_analysis(self, client):
         """Test starting an analysis via API"""
         # response = client.post(
@@ -386,19 +392,19 @@ class TestAPI:
         #         "data_source": {"type": "csv", "location": "test.csv"}
         #     }
         # )
-        # 
+        #
         # assert response.status_code == 200
         # assert "analysis_id" in response.json()
         pass
-    
+
     async def test_get_analysis_status(self, client):
         """Test getting analysis status"""
         pass
-    
+
     async def test_get_results(self, client):
         """Test retrieving results"""
         pass
-    
+
     async def test_invalid_requests(self, client):
         """Test API handles invalid requests"""
         pass
@@ -408,22 +414,23 @@ class TestAPI:
 # PERFORMANCE TESTS
 # ============================================================================
 
+
 class TestPerformance:
     """Performance and load tests"""
-    
+
     @pytest.mark.slow
     @pytest.mark.asyncio
     async def test_concurrent_analyses(self):
         """Test system handles multiple concurrent analyses"""
         # Create multiple analysis requests and execute concurrently
         pass
-    
+
     @pytest.mark.slow
     def test_large_dataset_handling(self):
         """Test system handles large datasets"""
         # Test with datasets of various sizes
         pass
-    
+
     @pytest.mark.asyncio
     async def test_response_time(self):
         """Test response times meet requirements"""
@@ -435,19 +442,20 @@ class TestPerformance:
 # VALIDATION TESTS
 # ============================================================================
 
+
 class TestValidation:
     """Tests for data and result validation"""
-    
+
     def test_input_validation(self):
         """Test input validation works"""
         # Should reject invalid inputs
         pass
-    
+
     def test_output_validation(self):
         """Test output follows expected schema"""
         # Should match Pydantic models
         pass
-    
+
     def test_statistical_validity(self):
         """Test statistical outputs are valid"""
         # Check p-values are in [0,1], R² in [0,1], etc.
@@ -457,6 +465,7 @@ class TestValidation:
 # ============================================================================
 # FIXTURES FOR API TESTING
 # ============================================================================
+
 
 @pytest.fixture
 def client():
@@ -471,42 +480,31 @@ def client():
 # TEST UTILITIES
 # ============================================================================
 
+
 def create_synthetic_data(n_rows: int = 100, n_cols: int = 3):
     """Create synthetic data for testing"""
     import numpy as np
     import pandas as pd
-    
+
     np.random.seed(42)
-    data = {
-        f"x{i}": np.random.randn(n_rows)
-        for i in range(n_cols)
-    }
-    data["y"] = (
-        2 * data["x0"] + 
-        -1.5 * data["x1"] + 
-        np.random.randn(n_rows) * 0.5
-    )
-    
+    data = {f"x{i}": np.random.randn(n_rows) for i in range(n_cols)}
+    data["y"] = 2 * data["x0"] + -1.5 * data["x1"] + np.random.randn(n_rows) * 0.5
+
     return pd.DataFrame(data)
 
 
 def assert_valid_model_output(model_result: Dict[str, Any]):
     """Assert model output has required fields"""
-    required_fields = [
-        "coefficients",
-        "statistics",
-        "diagnostics",
-        "code"
-    ]
-    
+    required_fields = ["coefficients", "statistics", "diagnostics", "code"]
+
     for field in required_fields:
         assert field in model_result, f"Missing required field: {field}"
-    
+
     # Validate statistics
     stats = model_result["statistics"]
     if "r_squared" in stats:
         assert 0 <= stats["r_squared"] <= 1, "R² should be between 0 and 1"
-    
+
     if "f_pvalue" in stats:
         assert 0 <= stats["f_pvalue"] <= 1, "p-value should be between 0 and 1"
 
@@ -517,12 +515,12 @@ def assert_valid_interpretation(interpretation: Dict[str, Any]):
         "executive_summary",
         "key_findings",
         "recommendations",
-        "limitations"
+        "limitations",
     ]
-    
+
     for field in required_fields:
         assert field in interpretation, f"Missing required field: {field}"
-    
+
     assert len(interpretation["key_findings"]) > 0, "Should have key findings"
     assert len(interpretation["recommendations"]) > 0, "Should have recommendations"
 

@@ -17,6 +17,7 @@ from pydantic_ai import Agent, RunContext
 # CORE DATA MODELS
 # ============================================================================
 
+
 class TaskStatus(str, Enum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
@@ -35,6 +36,7 @@ class TaskType(str, Enum):
 
 class Task(BaseModel):
     """Represents a single task in the analysis workflow"""
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: TaskType
     description: str
@@ -51,6 +53,7 @@ class Task(BaseModel):
 
 class AnalysisPlan(BaseModel):
     """Complete analysis workflow plan"""
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     query: str
     tasks: List[Task]
@@ -61,6 +64,7 @@ class AnalysisPlan(BaseModel):
 
 class AgentResponse(BaseModel):
     """Response from an agent"""
+
     agent: str
     status: str  # "success", "failure", "partial"
     result: Optional[Dict[str, Any]] = None
@@ -71,6 +75,7 @@ class AgentResponse(BaseModel):
 
 class DataSource(BaseModel):
     """Data source specification"""
+
     type: str  # csv, excel, sql, api, parquet
     location: str
     parameters: Dict[str, Any] = Field(default_factory=dict)
@@ -78,6 +83,7 @@ class DataSource(BaseModel):
 
 class Problem(BaseModel):
     """Problem specification"""
+
     type: str  # regression, classification, time_series, etc.
     description: str
     target_variable: Optional[str] = None
@@ -87,6 +93,7 @@ class Problem(BaseModel):
 
 class AnalysisResult(BaseModel):
     """Final analysis results"""
+
     analysis_id: str
     query: str
     plan: AnalysisPlan
@@ -100,14 +107,15 @@ class AnalysisResult(BaseModel):
 # BASE AGENT CLASS
 # ============================================================================
 
+
 class BaseDataScienceAgent:
     """Base class for all specialized agents"""
-    
+
     def __init__(
         self,
         name: str,
         model: str = "openai:gpt-4",
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
     ):
         self.name = name
         self.model = model
@@ -115,38 +123,38 @@ class BaseDataScienceAgent:
         self.agent = Agent(model, system_prompt=self.system_prompt)
         self.capabilities: List[TaskType] = []
         self.tools: Dict[str, Any] = {}
-    
+
     def default_system_prompt(self) -> str:
         """Default system prompt - override in subclasses"""
         return f"You are {self.name}, a specialized AI agent for data science."
-    
+
     async def execute_task(self, task: Task) -> AgentResponse:
         """Execute a task - override in subclasses"""
         raise NotImplementedError
-    
+
     async def process(self, task: Task) -> AgentResponse:
         """Process task with error handling"""
         try:
             task.status = TaskStatus.IN_PROGRESS
             task.started_at = datetime.now()
-            
+
             response = await self.execute_task(task)
-            
-            task.status = TaskStatus.COMPLETED if response.status == "success" else TaskStatus.FAILED
+
+            task.status = (
+                TaskStatus.COMPLETED
+                if response.status == "success"
+                else TaskStatus.FAILED
+            )
             task.completed_at = datetime.now()
             task.output_data = response.result
-            
+
             return response
-            
+
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.error = str(e)
-            return AgentResponse(
-                agent=self.name,
-                status="failure",
-                error=str(e)
-            )
-    
+            return AgentResponse(agent=self.name, status="failure", error=str(e))
+
     def can_handle(self, task: Task) -> bool:
         """Check if agent can handle this task"""
         return task.type in self.capabilities
@@ -156,20 +164,21 @@ class BaseDataScienceAgent:
 # ORCHESTRATOR AGENT
 # ============================================================================
 
+
 class OrchestratorAgent:
     """
     Master orchestrator that coordinates all specialized agents
     Plans workflows and routes tasks to appropriate agents
     """
-    
+
     def __init__(
         self,
         model: str = "openai:gpt-4",
-        agents: Optional[Dict[str, BaseDataScienceAgent]] = None
+        agents: Optional[Dict[str, BaseDataScienceAgent]] = None,
     ):
         self.model = model
         self.agents = agents or {}
-        
+
         self.system_prompt = """You are the Orchestrator Agent for a sophisticated data science system.
 
 Your responsibilities:
@@ -195,15 +204,17 @@ When planning:
 Be methodical and thorough. Always validate dependencies before execution."""
 
         self.agent = Agent(model, system_prompt=self.system_prompt)
-    
+
     def register_agent(self, agent: BaseDataScienceAgent):
         """Register a specialized agent"""
         self.agents[agent.name] = agent
         print(f"✅ Registered agent: {agent.name}")
-    
-    async def plan_analysis(self, query: str, data_source: Optional[DataSource] = None) -> AnalysisPlan:
+
+    async def plan_analysis(
+        self, query: str, data_source: Optional[DataSource] = None
+    ) -> AnalysisPlan:
         """Create an execution plan from user query"""
-        
+
         prompt = f"""Create a detailed analysis plan for this request:
 
 Query: {query}
@@ -226,118 +237,123 @@ Return a structured plan with proper task ordering."""
 
         result = await self.agent.run(prompt)
         response = str(result.data)
-        
+
         # Parse response into tasks (simplified for demo)
         # In production, use structured output or JSON parsing
         tasks = self._parse_plan_response(response, query)
-        
+
         # Build dependency graph
         workflow_graph = self._build_workflow_graph(tasks)
-        
+
         return AnalysisPlan(
             query=query,
             tasks=tasks,
             workflow_graph=workflow_graph,
-            estimated_duration_minutes=len(tasks) * 2.0
+            estimated_duration_minutes=len(tasks) * 2.0,
         )
-    
+
     def _parse_plan_response(self, response: str, query: str) -> List[Task]:
         """Parse LLM response into structured tasks"""
         # Simplified parsing - in production use structured output
         tasks = []
-        
+
         # Default workflow for demonstration
         task_sequence = [
             ("research", "Research appropriate statistical methods", []),
             ("load_data", "Load and validate data", ["research"]),
             ("eda", "Perform exploratory data analysis", ["load_data"]),
             ("modeling", "Fit statistical models", ["eda"]),
-            ("interpretation", "Interpret results and create report", ["modeling"])
+            ("interpretation", "Interpret results and create report", ["modeling"]),
         ]
-        
+
         for task_type, description, deps in task_sequence:
             task = Task(
                 type=TaskType(task_type),
                 description=description,
-                dependencies=[t.id for t in tasks if any(d in t.type.value for d in deps)],
-                input_data={"query": query}
+                dependencies=[
+                    t.id for t in tasks if any(d in t.type.value for d in deps)
+                ],
+                input_data={"query": query},
             )
             tasks.append(task)
-        
+
         return tasks
-    
+
     def _build_workflow_graph(self, tasks: List[Task]) -> Dict[str, List[str]]:
         """Build adjacency list representation of task dependencies"""
         graph = {task.id: task.dependencies for task in tasks}
         return graph
-    
+
     async def execute_plan(self, plan: AnalysisPlan) -> AnalysisResult:
         """Execute the analysis plan"""
-        
-        print("\n" + "="*70)
+
+        print("\n" + "=" * 70)
         print(f"🚀 EXECUTING ANALYSIS: {plan.query}")
-        print("="*70)
-        
+        print("=" * 70)
+
         start_time = datetime.now()
         results = {}
-        
+
         # Execute tasks in dependency order
         executed_tasks = set()
-        
+
         while len(executed_tasks) < len(plan.tasks):
             # Find tasks ready to execute (all dependencies met)
             ready_tasks = [
-                task for task in plan.tasks
+                task
+                for task in plan.tasks
                 if task.id not in executed_tasks
                 and all(dep in executed_tasks for dep in task.dependencies)
             ]
-            
+
             if not ready_tasks:
                 # No tasks ready - check for circular dependencies
                 remaining = [t for t in plan.tasks if t.id not in executed_tasks]
-                raise ValueError(f"Circular dependency detected. Remaining tasks: {[t.description for t in remaining]}")
-            
+                raise ValueError(
+                    f"Circular dependency detected. Remaining tasks: {[t.description for t in remaining]}"
+                )
+
             # Execute ready tasks
             for task in ready_tasks:
                 print(f"\n📋 Executing: {task.description}")
                 result = await self._execute_task(task)
                 results[task.type.value] = result
                 executed_tasks.add(task.id)
-        
+
         execution_time = (datetime.now() - start_time).total_seconds()
-        
+
         print("\n✅ Analysis complete!")
         print(f"⏱️  Execution time: {execution_time:.2f} seconds")
-        
+
         return AnalysisResult(
             analysis_id=plan.id,
             query=plan.query,
             plan=plan,
             success=True,
             execution_time_seconds=execution_time,
-            results=results
+            results=results,
         )
-    
+
     async def _execute_task(self, task: Task) -> AgentResponse:
         """Route task to appropriate agent"""
-        
+
         # Find agent that can handle this task
         agent = None
         for ag in self.agents.values():
             if ag.can_handle(task):
                 agent = ag
                 break
-        
+
         if not agent:
             # Fallback to orchestrator handling
             return await self._handle_task_directly(task)
-        
+
         task.agent = agent.name
         return await agent.process(task)
-    
+
     async def _handle_task_directly(self, task: Task) -> AgentResponse:
         """Handle task directly when no specialized agent available"""
-        
+
         prompt = f"""Execute this task:
 
 Task Type: {task.type}
@@ -350,16 +366,14 @@ Provide a detailed response including:
 3. Next steps or recommendations"""
 
         result = await self.agent.run(prompt)
-        
+
         return AgentResponse(
-            agent="orchestrator",
-            status="success",
-            result={"output": str(result.data)}
+            agent="orchestrator", status="success", result={"output": str(result.data)}
         )
-    
+
     async def synthesize_results(self, analysis_result: AnalysisResult) -> str:
         """Create final synthesis of all results"""
-        
+
         prompt = f"""Synthesize these analysis results into a comprehensive report:
 
 Query: {analysis_result.query}
@@ -378,7 +392,7 @@ Format for a business audience."""
 
         result = await self.agent.run(prompt)
         return str(result.data)
-    
+
     def _format_results(self, results: Dict[str, Any]) -> str:
         """Format results for synthesis"""
         formatted = []
@@ -392,56 +406,57 @@ Format for a business audience."""
 # WORKFLOW ENGINE
 # ============================================================================
 
+
 class WorkflowEngine:
     """Manages workflow execution with state persistence"""
-    
+
     def __init__(self, orchestrator: OrchestratorAgent):
         self.orchestrator = orchestrator
         self.active_workflows: Dict[str, AnalysisPlan] = {}
-    
+
     async def start_analysis(
-        self,
-        query: str,
-        data_source: Optional[DataSource] = None
+        self, query: str, data_source: Optional[DataSource] = None
     ) -> str:
         """Start a new analysis workflow"""
-        
+
         # Create plan
         plan = await self.orchestrator.plan_analysis(query, data_source)
-        
+
         # Store workflow
         self.active_workflows[plan.id] = plan
-        
+
         return plan.id
-    
+
     async def execute_workflow(self, workflow_id: str) -> AnalysisResult:
         """Execute a workflow by ID"""
-        
+
         plan = self.active_workflows.get(workflow_id)
         if not plan:
             raise ValueError(f"Workflow {workflow_id} not found")
-        
+
         result = await self.orchestrator.execute_plan(plan)
         return result
-    
+
     def get_workflow_status(self, workflow_id: str) -> Dict[str, Any]:
         """Get current status of a workflow"""
-        
+
         plan = self.active_workflows.get(workflow_id)
         if not plan:
             return {"error": "Workflow not found"}
-        
+
         return {
             "id": plan.id,
             "query": plan.query,
             "total_tasks": len(plan.tasks),
-            "completed_tasks": sum(1 for t in plan.tasks if t.status == TaskStatus.COMPLETED),
+            "completed_tasks": sum(
+                1 for t in plan.tasks if t.status == TaskStatus.COMPLETED
+            ),
             "failed_tasks": sum(1 for t in plan.tasks if t.status == TaskStatus.FAILED),
             "current_tasks": [
                 {"description": t.description, "status": t.status}
                 for t in plan.tasks
                 if t.status == TaskStatus.IN_PROGRESS
-            ]
+            ],
         }
 
 
@@ -449,13 +464,14 @@ class WorkflowEngine:
 # DEMO SPECIALIZED AGENTS
 # ============================================================================
 
+
 class StatisticianAgent(BaseDataScienceAgent):
     """Research and statistical planning agent"""
-    
+
     def __init__(self, model: str = "openai:gpt-4"):
         super().__init__("statistician", model)
         self.capabilities = [TaskType.RESEARCH]
-    
+
     def default_system_prompt(self) -> str:
         return """You are an expert statistician and research methodologist.
 
@@ -475,12 +491,12 @@ When planning analyses:
 6. Suggest visualization strategies
 
 Be thorough and scientifically rigorous."""
-    
+
     async def execute_task(self, task: Task) -> AgentResponse:
         """Research statistical methods"""
-        
+
         query = task.input_data.get("query", "")
-        
+
         prompt = f"""Plan the statistical analysis for this request:
 
 {query}
@@ -496,26 +512,31 @@ Provide:
 Be specific and actionable."""
 
         result = await self.agent.run(prompt)
-        
+
         return AgentResponse(
             agent=self.name,
             status="success",
             result={
                 "plan": str(result.data),
                 "methods_recommended": ["linear_regression", "diagnostics"],
-                "assumptions": ["linearity", "independence", "normality", "homoscedasticity"]
+                "assumptions": [
+                    "linearity",
+                    "independence",
+                    "normality",
+                    "homoscedasticity",
+                ],
             },
-            next_suggestions=["Proceed to data loading and validation"]
+            next_suggestions=["Proceed to data loading and validation"],
         )
 
 
 class DataEngineerAgent(BaseDataScienceAgent):
     """Data loading and preparation agent"""
-    
+
     def __init__(self, model: str = "openai:gpt-4"):
         super().__init__("data_engineer", model)
         self.capabilities = [TaskType.LOAD_DATA]
-    
+
     def default_system_prompt(self) -> str:
         return """You are an expert data engineer specializing in data loading and preparation.
 
@@ -532,15 +553,15 @@ Always ensure:
 2. Proper error handling
 3. Clear documentation
 4. Reproducible scripts"""
-    
+
     async def execute_task(self, task: Task) -> AgentResponse:
         """Load and prepare data"""
-        
+
         # In production, actually load data
         # For demo, simulate data loading
-        
+
         await asyncio.sleep(0.5)  # Simulate I/O
-        
+
         return AgentResponse(
             agent=self.name,
             status="success",
@@ -550,9 +571,9 @@ Always ensure:
                 "n_cols": 10,
                 "columns": ["x1", "x2", "y"],
                 "missing_values": {"x1": 0, "x2": 5, "y": 0},
-                "loading_script": "# pandas.read_csv('data.csv')\n# data validation complete"
+                "loading_script": "# pandas.read_csv('data.csv')\n# data validation complete",
             },
-            next_suggestions=["Data is ready for EDA"]
+            next_suggestions=["Data is ready for EDA"],
         )
 
 
@@ -560,50 +581,51 @@ Always ensure:
 # MAIN DEMO
 # ============================================================================
 
+
 async def main():
     """Demonstrate the multi-agent system"""
-    
+
     print("🤖 DATA SCIENCE MULTI-AGENT SYSTEM")
-    print("="*70)
+    print("=" * 70)
     print()
-    
+
     # Create orchestrator
     orchestrator = OrchestratorAgent()
-    
+
     # Register specialized agents
     orchestrator.register_agent(StatisticianAgent())
     orchestrator.register_agent(DataEngineerAgent())
-    
+
     # Create workflow engine
     engine = WorkflowEngine(orchestrator)
-    
+
     # Example analysis request
     query = """
     I have sales data with marketing spend, seasonality, and competitor actions.
     I want to understand what drives sales and predict future performance.
     """
-    
+
     print(f"📊 Analysis Request: {query}\n")
-    
+
     # Start workflow
     workflow_id = await engine.start_analysis(query)
     print(f"✅ Workflow created: {workflow_id}\n")
-    
+
     # Check status
     status = engine.get_workflow_status(workflow_id)
     print(f"📋 Initial Status: {status['total_tasks']} tasks planned\n")
-    
+
     # Execute workflow
     result = await engine.execute_workflow(workflow_id)
-    
+
     # Synthesize results
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("📊 SYNTHESIZING RESULTS")
-    print("="*70)
-    
+    print("=" * 70)
+
     final_report = await orchestrator.synthesize_results(result)
     print("\n" + final_report)
-    
+
     print("\n\n✅ Complete system demonstration finished!")
     print("\n💡 Next steps:")
     print("  1. Implement remaining specialized agents (EDA, Modeling, Interpreter)")

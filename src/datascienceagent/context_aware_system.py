@@ -9,34 +9,40 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
+from loguru import logger
 
-from datascienceagent.model_utils import process_model
+from datascienceagent.utils.model_utils import process_model
 
 # Import context management (in production, use proper imports)
-# from context_management_system import (
-#     ContextManager, ContextType, ContextAwareAgent
-# )
-
+from datascienceagent.core.context_management import (
+    ContextManager,
+    ContextType,
+    ContextSummary,
+)
+from datascienceagent.core.context_aware_agent import ContextAwareAgent
 
 # ============================================================================
 # CONTEXT-AWARE ORCHESTRATOR
 # ============================================================================
 
+
 class ContextAwareOrchestrator:
     """
     Orchestrator with full context management integration
     """
-    
+
     def __init__(
         self,
         model: str = "openai:gpt-4",
-        context_manager = None,  # ContextManager instance
-        agents: Optional[Dict[str, Any]] = None
+        context_manager: Optional[ContextManager] = None,  # ContextManager instance
+        agents: Optional[Dict[str, Any]] = None,
     ):
         self.model = process_model(model)
-        self.context_manager = context_manager
+        self.context_manager: ContextManager = context_manager or ContextManager(
+            persist_directory="./context_chroma_db", chunk_size=1000
+        )
         self.agents = agents or {}
-        
+
         self.system_prompt = """You are the Orchestrator Agent with access to comprehensive context.
 
 You have access to:
@@ -56,27 +62,26 @@ Use this context to:
 Be specific about how you're using historical context."""
 
         self.agent = Agent(self.model, system_prompt=self.system_prompt)
-    
+
     async def plan_analysis_with_context(
         self,
         query: str,
         data_source: Optional[Dict[str, Any]] = None,
-        topic: Optional[str] = None
+        topic: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create analysis plan with full context awareness"""
-        
+
         # Start new session
         session_id = self.context_manager.start_session(topic=topic)
-        
+
         # Store user query
         self.context_manager.store_user_query(query)
-        
+
         # Get relevant context
         relevant_context = await self.context_manager.get_relevant_context(
-            query_text=query,
-            limit=10
+            query_text=query, limit=10
         )
-        
+
         # Build context-aware prompt
         prompt = f"""Create an analysis plan for this query:
 
@@ -98,73 +103,67 @@ Provide a step-by-step plan with task dependencies."""
         self.context_manager.store_agent_thought(
             "orchestrator",
             f"Planning analysis with {len(relevant_context)} relevant historical contexts",
-            metadata={"query": query}
+            metadata={"query": query},
         )
-        
+
         result = await self.agent.run(prompt)
-        
+
         plan_data = {
             "session_id": session_id,
             "query": query,
             "plan": str(result.data),
-            "context_used": len(relevant_context)
+            "context_used": len(relevant_context),
         }
-        
+
         # Store the plan
         self.context_manager.store_agent_output(
-            "orchestrator",
-            plan_data,
-            metadata={"stage": "planning"}
+            "orchestrator", plan_data, metadata={"stage": "planning"}
         )
-        
+
         return plan_data
-    
-    async def execute_with_context(
-        self,
-        plan: Dict[str, Any]
-    ) -> Dict[str, Any]:
+
+    async def execute_with_context(self, plan: Dict[str, Any]) -> Dict[str, Any]:
         """Execute plan with context management at each step"""
-        
+
         results = {}
-        
+
         # Define workflow stages
         stages = [
             ("research", "statistician"),
             ("load_data", "data_engineer"),
             ("eda", "eda_agent"),
             ("modeling", "modeling_agent"),
-            ("interpretation", "interpreter_agent")
+            ("interpretation", "interpreter_agent"),
         ]
-        
+
         for stage_name, agent_name in stages:
-            print(f"\n📋 Executing stage: {stage_name}")
-            
+            logger.info(f"\n📋 Executing stage: {stage_name}")
+
             # Get context for this agent
             context_summary = await self.context_manager.get_context_for_agent(
                 agent_name,
                 f"Execute {stage_name} for query: {plan['query']}",
-                include_history=True
+                include_history=True,
             )
-            
-            print(f"   📝 Context: {context_summary.total_chunks} relevant chunks")
-            
+
+            logger.info(
+                f"   📝 Context: {context_summary.total_chunks} relevant chunks"
+            )
+
             # Execute stage (simplified for demo)
             stage_result = await self._execute_stage_with_context(
-                stage_name,
-                agent_name,
-                plan,
-                context_summary
+                stage_name, agent_name, plan, context_summary
             )
-            
+
             results[stage_name] = stage_result
-            
+
             # Store results
             self.context_manager.store_agent_output(
                 agent_name,
                 stage_result,
-                metadata={"stage": stage_name, "query": plan["query"]}
+                metadata={"stage": stage_name, "query": plan["query"]},
             )
-            
+
             # Store any code generated
             if "code" in stage_result:
                 self.context_manager.store_code(
@@ -172,20 +171,20 @@ Provide a step-by-step plan with task dependencies."""
                     language="python",
                     agent_name=agent_name,
                     purpose=stage_name,
-                    metadata={"stage": stage_name}
+                    metadata={"stage": stage_name},
                 )
-        
+
         return results
-    
+
     async def _execute_stage_with_context(
         self,
         stage_name: str,
         agent_name: str,
         plan: Dict[str, Any],
-        context: Any  # ContextSummary
+        context: ContextSummary,
     ) -> Dict[str, Any]:
         """Execute a stage with context"""
-        
+
         # Build context-enhanced prompt
         prompt = f"""Execute {stage_name} for this analysis:
 
@@ -195,37 +194,39 @@ CONTEXT FROM CURRENT SESSION:
 {context.session_summary[:500]}
 
 """
-        
+
         if context.code_patterns:
             prompt += "\nRELEVANT CODE PATTERNS:\n"
             for pattern in context.code_patterns[:2]:
                 prompt += f"- {pattern}\n"
-        
+
         if context.key_findings:
             prompt += "\nKEY FINDINGS TO CONSIDER:\n"
             for finding in context.key_findings[:2]:
                 prompt += f"- {finding[:100]}\n"
-        
+
         prompt += f"\nExecute the {stage_name} stage, leveraging this context."
-        
+
         # Store thought process
         self.context_manager.store_agent_thought(
             agent_name,
             f"Executing {stage_name} with context awareness",
-            metadata={"stage": stage_name}
+            metadata={"stage": stage_name},
         )
-        
+
         # Simulate execution (in production, call actual agent)
         result = {
             "stage": stage_name,
             "status": "success",
             "output": f"Completed {stage_name} with context awareness",
-            "context_chunks_used": context.total_chunks
+            "context_chunks_used": context.total_chunks,
         }
-        
+
         # Add stage-specific outputs
         if stage_name == "modeling":
-            result["code"] = """
+            result[
+                "code"
+            ] = """
 # Context-aware modeling
 import statsmodels.api as sm
 
@@ -233,15 +234,15 @@ import statsmodels.api as sm
 model = sm.OLS(y, X)
 results = model.fit(cov_type='HC3')  # Robust errors based on past experience
 """
-        
+
         return result
-    
+
     async def generate_final_report(self) -> str:
         """Generate final report with full session context"""
-        
+
         # Get session summary
         session_summary = await self.context_manager.get_session_summary()
-        
+
         prompt = f"""Generate a comprehensive analysis report.
 
 SESSION SUMMARY:
@@ -258,27 +259,25 @@ Be specific about how historical context informed the analysis."""
 
         result = await self.agent.run(prompt)
         report = str(result.data)
-        
+
         # Store the final report
         self.context_manager.store_agent_output(
-            "orchestrator",
-            {"report": report},
-            metadata={"stage": "final_report"}
+            "orchestrator", {"report": report}, metadata={"stage": "final_report"}
         )
-        
+
         return report
-    
+
     def _format_context(self, contexts: List[Dict[str, Any]]) -> str:
         """Format context for prompt"""
         if not contexts:
             return "No relevant past work found."
-        
+
         formatted = []
         for ctx in contexts:
-            content = ctx['content'][:200]
-            ctx_type = ctx['metadata'].get('context_type', 'unknown')
+            content = ctx["content"][:200]
+            ctx_type = ctx["metadata"].get("context_type", "unknown")
             formatted.append(f"[{ctx_type}] {content}...")
-        
+
         return "\n\n".join(formatted)
 
 
@@ -286,15 +285,16 @@ Be specific about how historical context informed the analysis."""
 # CONTEXT-AWARE SPECIALIZED AGENTS
 # ============================================================================
 
+
 class ContextAwareStatistician:
     """Statistician agent with context awareness"""
-    
+
     def __init__(self, context_manager, model: str = "openai:gpt-4"):
         self.name = "statistician"
         self.context_manager = context_manager
         self.model = model
         self.agent = Agent(model, system_prompt=self.get_system_prompt())
-    
+
     def get_system_prompt(self) -> str:
         return """You are an expert statistician with access to past analyses.
 
@@ -305,17 +305,15 @@ When recommending methods:
 4. Avoid methods that failed before
 
 Be explicit about how you're using historical knowledge."""
-    
+
     async def execute_with_context(self, task: str) -> Dict[str, Any]:
         """Execute with full context awareness"""
-        
+
         # Get context
         context = await self.context_manager.get_context_for_agent(
-            self.name,
-            task,
-            include_history=True
+            self.name, task, include_history=True
         )
-        
+
         # Build enhanced prompt
         prompt = f"""Task: {task}
 
@@ -331,25 +329,20 @@ Recommend appropriate statistical methods, explaining how past work informs your
         self.context_manager.store_agent_thought(
             self.name,
             f"Processing with {context.total_chunks} context chunks",
-            metadata={"task": task}
+            metadata={"task": task},
         )
-        
+
         result = await self.agent.run(prompt)
-        
-        output = {
-            "result": str(result.data),
-            "context_used": context.total_chunks
-        }
-        
+
+        output = {"result": str(result.data), "context_used": context.total_chunks}
+
         # Store output
         self.context_manager.store_agent_output(
-            self.name,
-            output,
-            metadata={"task": task}
+            self.name, output, metadata={"task": task}
         )
-        
+
         return output
-    
+
     def _format_insights(self, insights: List[str]) -> str:
         if not insights:
             return "No past insights available."
@@ -358,13 +351,13 @@ Recommend appropriate statistical methods, explaining how past work informs your
 
 class ContextAwareModeler:
     """Modeling agent with context and code pattern awareness"""
-    
+
     def __init__(self, context_manager, model: str = "openai:gpt-4"):
         self.name = "modeling_agent"
         self.context_manager = context_manager
         self.model = process_model(model)
         self.agent = Agent(self.model, system_prompt=self.get_system_prompt())
-    
+
     def get_system_prompt(self) -> str:
         return """You are a statistical modeling expert with access to successful code patterns.
 
@@ -375,24 +368,20 @@ When building models:
 4. Reference successful specifications
 
 Always generate clean, well-documented code."""
-    
+
     async def execute_with_context(self, task: str) -> Dict[str, Any]:
         """Execute with code pattern awareness"""
-        
+
         # Get context including code patterns
         context = await self.context_manager.get_context_for_agent(
-            self.name,
-            task,
-            include_history=True
+            self.name, task, include_history=True
         )
-        
+
         # Get relevant code examples
         code_examples = await self.context_manager.get_relevant_context(
-            query_text=task,
-            context_types=[ContextType.CODE_CHUNK],
-            limit=5
+            query_text=task, context_types=[ContextType.CODE_CHUNK], limit=5
         )
-        
+
         # Build prompt with code patterns
         prompt = f"""Task: {task}
 
@@ -411,52 +400,50 @@ Build the model, adapting these successful patterns."""
         self.context_manager.store_agent_thought(
             self.name,
             f"Using {len(context.code_patterns)} code patterns and {len(code_examples)} examples",
-            metadata={"task": task}
+            metadata={"task": task},
         )
-        
+
         result = await self.agent.run(prompt)
-        
+
         # Generate code
         code = self._extract_code(str(result.data))
-        
+
         output = {
             "result": str(result.data),
             "code": code,
-            "patterns_used": len(context.code_patterns)
+            "patterns_used": len(context.code_patterns),
         }
-        
+
         # Store output and code
         self.context_manager.store_agent_output(
-            self.name,
-            output,
-            metadata={"task": task}
+            self.name, output, metadata={"task": task}
         )
-        
+
         if code:
             self.context_manager.store_code(
                 code,
                 language="python",
                 agent_name=self.name,
                 purpose=task,
-                metadata={"adapted_from_patterns": True}
+                metadata={"adapted_from_patterns": True},
             )
-        
+
         return output
-    
+
     def _format_code_patterns(self, patterns: List[str]) -> str:
         if not patterns:
             return "No past patterns available."
         return "\n".join(f"{i+1}. {p}" for i, p in enumerate(patterns[:3]))
-    
+
     def _format_code_examples(self, examples: List[Dict[str, Any]]) -> str:
         if not examples:
             return "No similar examples found."
-        
+
         formatted = []
         for ex in examples:
             formatted.append(f"```python\n{ex['content'][:300]}\n```")
         return "\n\n".join(formatted)
-    
+
     def _extract_code(self, response: str) -> str:
         """Extract code blocks from response"""
         # Simplified extraction
@@ -472,102 +459,98 @@ Build the model, adapting these successful patterns."""
 # COMPLETE WORKFLOW WITH CONTEXT
 # ============================================================================
 
+
 async def run_context_aware_analysis(
     query: str,
     topic: Optional[str] = None,
-    data_source: Optional[Dict[str, Any]] = None
+    data_source: Optional[Dict[str, Any]] = None,
 ):
     """Run complete analysis with full context management"""
-    
-    print("="*70)
+
+    print("=" * 70)
     print("CONTEXT-AWARE ANALYSIS WORKFLOW")
-    print("="*70)
+    print("=" * 70)
     print(f"\nQuery: {query}")
     if topic:
         print(f"Topic: {topic}")
     print()
-    
+
     # Initialize context manager
     context_mgr = ContextManager(
-        persist_directory="./analysis_chroma_db",
-        chunk_size=1000
+        persist_directory="./analysis_chroma_db", chunk_size=1000
     )
-    
+
     # Create orchestrator
-    orchestrator = ContextAwareOrchestrator(
-        context_manager=context_mgr
-    )
-    
+    orchestrator = ContextAwareOrchestrator(context_manager=context_mgr)
+
     # Create agents
     statistician = ContextAwareStatistician(context_mgr)
     modeler = ContextAwareModeler(context_mgr)
-    
+
     # Phase 1: Planning with context
     print("📋 PHASE 1: Context-Aware Planning")
-    print("-"*70)
-    
-    plan = await orchestrator.plan_analysis_with_context(
-        query,
-        data_source,
-        topic
-    )
-    
+    print("-" * 70)
+
+    plan = await orchestrator.plan_analysis_with_context(query, data_source, topic)
+
     print(f"✅ Plan created using {plan['context_used']} historical contexts")
     print(f"   Session ID: {plan['session_id']}")
-    
+
     # Phase 2: Research with context
     print("\n🔬 PHASE 2: Statistical Research with Context")
-    print("-"*70)
-    
+    print("-" * 70)
+
     research_result = await statistician.execute_with_context(
         f"Research methods for: {query}"
     )
-    
-    print(f"✅ Research complete using {research_result['context_used']} context chunks")
-    
+
+    print(
+        f"✅ Research complete using {research_result['context_used']} context chunks"
+    )
+
     # Phase 3: Modeling with code patterns
     print("\n📊 PHASE 3: Modeling with Code Patterns")
-    print("-"*70)
-    
-    modeling_result = await modeler.execute_with_context(
-        f"Build model for: {query}"
+    print("-" * 70)
+
+    modeling_result = await modeler.execute_with_context(f"Build model for: {query}")
+
+    print(
+        f"✅ Model built using {modeling_result.get('patterns_used', 0)} code patterns"
     )
-    
-    print(f"✅ Model built using {modeling_result.get('patterns_used', 0)} code patterns")
-    if modeling_result.get('code'):
+    if modeling_result.get("code"):
         print(f"   Code generated: {len(modeling_result['code'])} characters")
-    
+
     # Phase 4: Execute full workflow
     print("\n⚙️ PHASE 4: Full Workflow Execution")
-    print("-"*70)
-    
+    print("-" * 70)
+
     results = await orchestrator.execute_with_context(plan)
-    
+
     print(f"✅ Executed {len(results)} stages")
-    
+
     # Phase 5: Final report
     print("\n📝 PHASE 5: Generating Context-Aware Report")
-    print("-"*70)
-    
+    print("-" * 70)
+
     report = await orchestrator.generate_final_report()
-    
+
     print(f"✅ Report generated")
     print(f"\nReport preview:\n{report[:500]}...\n")
-    
+
     # Show statistics
     print("\n📊 SESSION STATISTICS")
-    print("-"*70)
-    
+    print("-" * 70)
+
     stats = context_mgr.get_stats()
     for key, value in stats.items():
         print(f"   {key}: {value}")
-    
+
     return {
-        "session_id": plan['session_id'],
+        "session_id": plan["session_id"],
         "plan": plan,
         "results": results,
         "report": report,
-        "stats": stats
+        "stats": stats,
     }
 
 
@@ -575,67 +558,70 @@ async def run_context_aware_analysis(
 # DEMO: CONTINUITY ACROSS SESSIONS
 # ============================================================================
 
+
 async def demo_cross_session_learning():
     """Demonstrate learning across multiple sessions"""
-    
-    print("\n" + "="*70)
+
+    print("\n" + "=" * 70)
     print("DEMO: CROSS-SESSION LEARNING")
-    print("="*70)
-    
+    print("=" * 70)
+
     # Session 1: Initial analysis
     print("\n📊 SESSION 1: Initial Analysis")
-    print("-"*70)
-    
+    print("-" * 70)
+
     result1 = await run_context_aware_analysis(
         query="Analyze marketing effectiveness on sales",
         topic="marketing_roi_analysis",
-        data_source={"type": "csv", "location": "sales_data.csv"}
+        data_source={"type": "csv", "location": "sales_data.csv"},
     )
-    
-    print(f"\n✅ Session 1 complete. Stored {result1['stats']['total_chunks']} context chunks")
-    
+
+    print(
+        f"\n✅ Session 1 complete. Stored {result1['stats']['total_chunks']} context chunks"
+    )
+
     # Wait a bit
     await asyncio.sleep(1)
-    
+
     # Session 2: Follow-up with same topic
     print("\n\n📊 SESSION 2: Follow-up Analysis (Same Topic)")
-    print("-"*70)
+    print("-" * 70)
     print("This session should leverage context from Session 1")
-    
+
     result2 = await run_context_aware_analysis(
         query="Add competitor analysis and seasonal effects to the marketing model",
         topic="marketing_roi_analysis",  # Same topic!
-        data_source={"type": "csv", "location": "sales_data_extended.csv"}
+        data_source={"type": "csv", "location": "sales_data_extended.csv"},
     )
-    
+
     print(f"\n✅ Session 2 complete.")
     print(f"   Should have referenced Session 1 insights and code patterns")
-    
+
     # Session 3: Different topic
     print("\n\n📊 SESSION 3: Different Topic")
-    print("-"*70)
+    print("-" * 70)
     print("This session should NOT use context from Sessions 1 & 2")
-    
+
     result3 = await run_context_aware_analysis(
         query="Predict customer churn using logistic regression",
         topic="customer_churn_prediction",  # Different topic
-        data_source={"type": "csv", "location": "customer_data.csv"}
+        data_source={"type": "csv", "location": "customer_data.csv"},
     )
-    
+
     print(f"\n✅ Session 3 complete.")
     print(f"   Should be isolated from marketing analysis context")
-    
+
     # Show how topics are isolated
     print("\n\n🔍 CONTEXT ISOLATION VERIFICATION")
-    print("-"*70)
-    
+    print("-" * 70)
+
     context_mgr = ContextManager(persist_directory="./analysis_chroma_db")
-    
+
     # Get stats
     stats = context_mgr.get_stats()
     print(f"\nTotal chunks stored: {stats['total_chunks']}")
     print(f"Spanning {3} sessions across {2} topics")
-    
+
     print("\n✅ Cross-session learning demo complete!")
 
 
@@ -643,11 +629,12 @@ async def demo_cross_session_learning():
 # MAIN DEMO
 # ============================================================================
 
+
 async def main():
     """Run comprehensive context-aware system demo"""
-    
+
     print("\n🚀 CONTEXT-AWARE AGENT SYSTEM")
-    print("="*70)
+    print("=" * 70)
     print("Demonstrating:")
     print("  • Context summarization")
     print("  • RAG with ChromaDB")
@@ -655,17 +642,17 @@ async def main():
     print("  • Code pattern reuse")
     print("  • Topic-based isolation")
     print()
-    
+
     # Run single analysis
     await run_context_aware_analysis(
         query="Build a regression model to predict house prices from size, location, and age",
         topic="real_estate_valuation",
-        data_source={"type": "csv", "location": "houses.csv"}
+        data_source={"type": "csv", "location": "houses.csv"},
     )
-    
+
     # Uncomment to run cross-session demo
     # await demo_cross_session_learning()
-    
+
     print("\n\n✅ All demos complete!")
     print("\n💡 Key Features Demonstrated:")
     print("  ✓ Automatic context chunking and storage")
@@ -678,59 +665,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Import ContextType for the demo
-    from enum import Enum
-    
-    class ContextType(str, Enum):
-        CODE_CHUNK = "code_chunk"
-        AGENT_OUTPUT = "agent_output"
-        AGENT_THOUGHT = "agent_thought"
-    
-    # Mock ContextManager for standalone demo
-    class ContextManager:
-        def __init__(self, persist_directory="./chroma_db", chunk_size=1000):
-            self.current_session_id = None
-            self.current_topic_id = None
-            print(f"✅ Context manager initialized (mock): {persist_directory}")
-        
-        def start_session(self, topic=None):
-            import uuid
-            self.current_session_id = str(uuid.uuid4())
-            self.current_topic_id = topic
-            return self.current_session_id
-        
-        def store_user_query(self, query):
-            print(f"   📝 Stored user query")
-        
-        def store_agent_thought(self, agent, thought, metadata=None):
-            print(f"   💭 Stored {agent} thought")
-        
-        def store_agent_output(self, agent, output, metadata=None):
-            print(f"   📤 Stored {agent} output")
-        
-        def store_code(self, code, language, agent_name, purpose, metadata=None):
-            print(f"   💾 Stored {language} code from {agent_name}")
-        
-        async def get_context_for_agent(self, agent_name, task, include_history=True):
-            class MockContext:
-                session_summary = "Mock session summary"
-                total_chunks = 5
-                code_patterns = ["import pandas as pd", "model.fit()"]
-                key_findings = ["Finding 1", "Finding 2"]
-                topic_insights = ["Insight 1"]
-            return MockContext()
-        
-        async def get_relevant_context(self, query_text, context_types=None, limit=10):
-            return [{"content": "Mock context", "metadata": {"context_type": "mock"}}]
-        
-        async def get_session_summary(self):
-            return "Mock session summary with key findings"
-        
-        def get_stats(self):
-            return {
-                "total_chunks": 15,
-                "current_session_id": self.current_session_id,
-                "current_topic_id": self.current_topic_id
-            }
-    
+
     asyncio.run(main())
