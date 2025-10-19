@@ -373,10 +373,6 @@ def load_csv_data(
 
 if __name__ == "__main__":
     # Configure logging for demo
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(levelname)s: %(message)s'
-    )
     
     print("\n" + "="*70)
     print("DATA LOADER MODULE - DEMO")

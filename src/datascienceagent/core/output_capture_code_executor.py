@@ -338,7 +338,7 @@ os.chdir('{working_dir}')
 
 async def test_executor():
     """Test the output capturing executor"""
-    from output_manager import OutputManager
+    from datascienceagent.core.output_manager import OutputManager
     
     print("\n" + "="*70)
     print("TESTING OUTPUT CAPTURING EXECUTOR")
