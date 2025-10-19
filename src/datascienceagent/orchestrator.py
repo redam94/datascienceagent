@@ -21,6 +21,8 @@ from datascienceagent.core.workflow_graph import (
 )
 from datascienceagent.agents.specialist_agents import AgentFactory
 from datascienceagent.utils.model_utils import process_model
+from datascienceagent.core.output_manager import OutputManager
+from datascienceagent.core.output_capture_code_executor import OutputCapturingExecutor
 
 # ============================================================================
 # ORCHESTRATOR - REFACTORED

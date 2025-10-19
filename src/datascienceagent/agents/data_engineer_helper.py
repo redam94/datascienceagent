@@ -22,6 +22,7 @@ import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
 from loguru import logger
+import pandas as pd
 
 from datascienceagent.core.data_loader import DataLoader, DataLoadError
 
