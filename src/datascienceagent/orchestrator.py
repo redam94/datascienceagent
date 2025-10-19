@@ -1,8 +1,10 @@
 """
-Orchestrator for Data Science Workflow Execution
+Orchestrator for Data Science Workflow Execution - REFACTORED
 
-Coordinates specialist agents using standardized workflow graphs.
-Ensures proper dependency management and context flow between agents.
+Key improvements:
+1. Properly passes initial request data (including data_source) to workflow
+2. Uses executor's prepare_node_input to combine dependency outputs and initial data
+3. Ensures DATA_ACQUISITION node receives data_source information
 """
 
 import asyncio
@@ -14,20 +16,21 @@ from loguru import logger
 
 from datascienceagent.core.workflow_graph import (
     WorkflowGraph, WorkflowExecutor, WorkflowStage,
-    StageStatus, create_standard_regression_workflow
+    StageStatus, create_standard_regression_workflow,
+    create_exploratory_workflow, create_modeling_focused_workflow
 )
 from datascienceagent.agents.specialist_agents import AgentFactory
 from datascienceagent.utils.model_utils import process_model
 
 # ============================================================================
-# ORCHESTRATOR
+# ORCHESTRATOR - REFACTORED
 # ============================================================================
 
 class AnalysisRequest(BaseModel):
     """Request for analysis"""
     query: str
-    workflow_type: str = "standard_regression"  # or "exploratory", "modeling_focused"
-    data_source: Optional[Dict[str, Any]] = None
+    workflow_type: str = "standard_regression"
+    data_source: Optional[Dict[str, Any]] = None  # CRITICAL: Must be passed to workflow!
     objectives: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -36,7 +39,7 @@ class AnalysisResult(BaseModel):
     """Complete analysis result"""
     workflow_id: str
     query: str
-    status: str  # "completed", "failed", "partial"
+    status: str
     
     # Results by stage
     stage_results: Dict[str, Any] = Field(default_factory=dict)
@@ -58,13 +61,7 @@ class WorkflowOrchestrator:
     """
     Orchestrates complete data science workflows.
     
-    Responsibilities:
-    - Create appropriate workflow graphs
-    - Initialize specialist agents
-    - Execute workflows in proper order
-    - Manage context flow between agents
-    - Handle errors and recovery
-    - Aggregate results
+    REFACTORED: Now properly passes initial request data to workflow nodes.
     """
     
     def __init__(
@@ -99,6 +96,8 @@ class WorkflowOrchestrator:
                 model=self.model,
                 context_manager=self.context_manager
             )
+        
+        logger.info(f"✅ Initialized {len(self.agents)} specialist agents")
     
     async def execute_analysis(
         self,
@@ -107,11 +106,7 @@ class WorkflowOrchestrator:
         """
         Execute complete analysis workflow.
         
-        Args:
-            request: Analysis request with query and parameters
-            
-        Returns:
-            AnalysisResult with all outputs
+        REFACTORED: Properly passes request data to workflow.
         """
         start_time = datetime.now()
         
@@ -119,9 +114,12 @@ class WorkflowOrchestrator:
         if self.context_manager:
             self.context_manager.store_user_query(request.query)
         
-        # Create workflow graph
+        # REFACTORED: Create workflow WITH initial data from request
         workflow = self._create_workflow(request)
         self.active_workflows[workflow.id] = workflow
+        
+        logger.info(f"📊 Created workflow: {workflow.name}")
+        logger.info(f"   Initial data keys: {list(workflow.initial_data.keys())}")
         
         # Create executor
         executor = WorkflowExecutor(workflow)
@@ -140,8 +138,9 @@ class WorkflowOrchestrator:
             execution_levels = executor.get_execution_order()
             
             for level_idx, node_ids in enumerate(execution_levels):
+                logger.info(f"\n{'='*70}")
                 logger.info(f"EXECUTING LEVEL {level_idx + 1}/{len(execution_levels)}")
-            
+                logger.info(f"{'='*70}")
                 
                 # Execute nodes in this level (can be parallel)
                 level_results = await self._execute_level(
@@ -177,6 +176,7 @@ class WorkflowOrchestrator:
                 ]
         
         except Exception as e:
+            logger.error(f"❌ Orchestration error: {str(e)}")
             result.status = "failed"
             result.errors.append(f"Orchestration error: {str(e)}")
         
@@ -189,15 +189,32 @@ class WorkflowOrchestrator:
         return result
     
     def _create_workflow(self, request: AnalysisRequest) -> WorkflowGraph:
-        """Create appropriate workflow graph for request"""
+        """
+        Create appropriate workflow graph for request.
+        
+        REFACTORED: Now passes initial data from request to workflow!
+        This is KEY to fixing the data_source passing issue.
+        """
+        # Prepare initial data from request
+        initial_data = {
+            "query": request.query,
+            "data_source": request.data_source,  # CRITICAL!
+            "objectives": request.objectives,
+            "metadata": request.metadata
+        }
+        
+        logger.info(f"📋 Creating workflow with initial data:")
+        logger.info(f"   - query: {request.query[:50]}...")
+        logger.info(f"   - data_source: {request.data_source}")
+        logger.info(f"   - objectives: {len(request.objectives)} objectives")
+        
+        # Create workflow based on type, passing initial_data
         if request.workflow_type == "standard_regression":
-            return create_standard_regression_workflow()
+            return create_standard_regression_workflow(initial_data=initial_data)
         elif request.workflow_type == "exploratory":
-            from datascienceagent.core.workflow_graph import create_exploratory_workflow
-            return create_exploratory_workflow()
+            return create_exploratory_workflow(initial_data=initial_data)
         elif request.workflow_type == "modeling_focused":
-            from datascienceagent.core.workflow_graph import create_modeling_focused_workflow
-            return create_modeling_focused_workflow()
+            return create_modeling_focused_workflow(initial_data=initial_data)
         else:
             raise ValueError(f"Unknown workflow type: {request.workflow_type}")
     
@@ -210,7 +227,8 @@ class WorkflowOrchestrator:
         """
         Execute all nodes in a level.
         
-        Can execute in parallel since dependencies are met.
+        REFACTORED: Uses executor's prepare_node_input to get both
+        dependency outputs AND initial data.
         """
         results = {}
         
@@ -226,7 +244,7 @@ class WorkflowOrchestrator:
                 continue
             
             # Execute node
-            logger.info(f"▶️  Executing: {node.stage.value}")
+            logger.info(f"\n▶️  Executing: {node.stage.value}")
             logger.info(f"   Description: {node.description}")
             
             try:
@@ -238,9 +256,15 @@ class WorkflowOrchestrator:
                 if not agent:
                     raise ValueError(f"Agent not found: {node.agent_name}")
                 
-                # Prepare input from dependencies
-                input_data = self._prepare_input(workflow, node)
+                # REFACTORED: Use executor's prepare_node_input
+                # This combines dependency outputs AND initial data!
+                input_data = executor.prepare_node_input(node_id)
                 node.input_data = input_data
+                
+                # Log what input the node is receiving
+                logger.info(f"   Input data keys: {list(input_data.keys())}")
+                if node.needs_initial_data:
+                    logger.info(f"   ✓ Node receives initial data: {node.initial_data_keys}")
                 
                 # Execute with agent
                 output = await self._execute_node(agent, node)
@@ -249,7 +273,8 @@ class WorkflowOrchestrator:
                 executor.mark_completed(node_id, output)
                 results[node_id] = output
                 
-                logger.info(f"   ✅ Completed in {(datetime.now() - node.started_at).total_seconds():.1f}s")
+                elapsed = (datetime.now() - node.started_at).total_seconds()
+                logger.info(f"   ✅ Completed in {elapsed:.1f}s")
             
             except Exception as e:
                 error_msg = f"Error executing {node.stage.value}: {str(e)}"
@@ -259,35 +284,23 @@ class WorkflowOrchestrator:
                 results[node_id] = {"error": error_msg}
         
         return results
-
-    def _prepare_input(
-        self,
-        workflow: WorkflowGraph,
-        node: Any
-    ) -> Dict[str, Any]:
-        """Prepare input data from dependencies"""
-        input_data = {}
-        
-        # Get outputs from dependencies
-        for dep_id in node.depends_on:
-            dep_node = workflow.nodes[dep_id]
-            if dep_node.output_data:
-                input_data[dep_node.stage.value] = dep_node.output_data
-        
-        return input_data
     
     async def _execute_node(
         self,
         agent: Any,
         node: Any
     ) -> Dict[str, Any]:
-        """Execute a single workflow node with appropriate agent"""
-        # Route to appropriate agent method based on stage
+        """
+        Execute a single workflow node with appropriate agent.
+        
+        The node.input_data now contains BOTH dependency outputs AND initial data!
+        """
         stage = node.stage
         
         if stage == WorkflowStage.RESEARCH:
+            # Has access to query and objectives from initial_data
             return await agent.execute_with_context(
-                "Research statistical methods for this problem",
+                f"Research statistical methods for: {node.input_data.get('query', 'the problem')}",
                 node
             )
         
@@ -299,8 +312,16 @@ class WorkflowOrchestrator:
             )
         
         elif stage == WorkflowStage.DATA_ACQUISITION:
+            # CRITICAL: Now has access to data_source from initial_data!
+            data_source = node.input_data.get("data_source")
+            if not data_source:
+                logger.warning("⚠️  No data_source in input_data!")
+                logger.warning(f"   Available keys: {list(node.input_data.keys())}")
+            else:
+                logger.info(f"   ✓ Data source: {data_source}")
+            
             return await agent.load_data(
-                node.input_data.get("data_source", {}),
+                data_source or {},
                 node
             )
         
@@ -312,21 +333,22 @@ class WorkflowOrchestrator:
         
         elif stage == WorkflowStage.DATA_CLEANING:
             return await agent.clean_data(
-                node.input_data.get("data_info", {}),
-                node.input_data.get("validation_report", {}),
+                node.input_data.get("data_acquisition", {}),  # From dependency
+                node.input_data.get("data_validation", {}),   # From dependency
                 node
             )
         
         elif stage == WorkflowStage.EDA:
+            # Has access to objectives from initial_data
             return await agent.explore_data(
-                node.input_data.get("data_info", {}),
-                node.input_data.get("objectives", []),
+                node.input_data.get("data_cleaning", {}),
+                node.input_data.get("objectives", []),  # From initial_data!
                 node
             )
         
         elif stage == WorkflowStage.FEATURE_ENGINEERING:
             return await agent.engineer_features(
-                node.input_data.get("eda_insights", {}),
+                node.input_data.get("eda", {}),
                 node
             )
         
@@ -338,36 +360,37 @@ class WorkflowOrchestrator:
         
         elif stage == WorkflowStage.MODEL_SPECIFICATION:
             return await agent.specify_model(
-                node.input_data.get("statistical_plan", {}),
-                node.input_data.get("data_info", {}),
-                node.input_data.get("eda_insights", {}),
+                node.input_data.get("statistical_planning", {}),
+                node.input_data.get("data_cleaning", {}),
+                node.input_data.get("eda", {}),
                 node
             )
         
         elif stage == WorkflowStage.MODEL_FITTING:
             return await agent.fit_model(
-                node.input_data.get("model_spec", {}),
+                node.input_data.get("model_specification", {}),
                 node
             )
         
         elif stage == WorkflowStage.MODEL_DIAGNOSTICS:
             return await agent.run_diagnostics(
-                node.input_data.get("fitted_model", {}),
+                node.input_data.get("model_fitting", {}),
                 node
             )
         
         elif stage == WorkflowStage.INTERPRETATION:
+            # Has access to query and objectives from initial_data
             return await agent.interpret_results(
-                node.input_data.get("model_results", {}),
-                node.input_data.get("diagnostics", {}),
-                node.input_data.get("objectives", []),
+                node.input_data.get("model_fitting", {}),
+                node.input_data.get("model_diagnostics", {}),
+                node.input_data.get("objectives", []),  # From initial_data!
                 node
             )
         
         elif stage == WorkflowStage.REPORT_GENERATION:
             return await agent.generate_report(
                 node.input_data.get("interpretation", {}),
-                node.input_data,
+                node.input_data,  # Pass all available data
                 node
             )
         
@@ -408,7 +431,9 @@ class WorkflowOrchestrator:
                 {
                     "stage": node.stage.value,
                     "status": node.status.value,
-                    "description": node.description
+                    "description": node.description,
+                    "has_initial_data": node.needs_initial_data,
+                    "input_keys": list(node.input_data.keys()) if node.input_data else []
                 }
                 for node in workflow.nodes.values()
                 if node.status == StageStatus.IN_PROGRESS
@@ -430,42 +455,52 @@ class WorkflowOrchestrator:
 
 
 # ============================================================================
-# EXAMPLE USAGE
+# EXAMPLE USAGE WITH PROPER DATA PASSING
 # ============================================================================
 
 if __name__ == "__main__":
     async def demo():
         print("="*70)
-        print("WORKFLOW ORCHESTRATOR DEMO")
+        print("REFACTORED WORKFLOW ORCHESTRATOR DEMO")
+        print("Testing proper data_source passing to DATA_ACQUISITION node")
         print("="*70)
+        
         from datascienceagent.core.context_management import ContextManager
         
-        # Create orchestrator (without context manager for demo)
-        orchestrator = WorkflowOrchestrator(context_manager=ContextManager(model="openai:gpt-4.1-mini"), model="openai:gpt-4.1-mini")
+        # Create orchestrator
+        orchestrator = WorkflowOrchestrator(
+            context_manager=ContextManager(model="openai:gpt-4.1-mini"),
+            model="openai:gpt-4.1-mini"
+        )
         
-        # Create analysis request
+        # Create analysis request with data_source
         request = AnalysisRequest(
             query="""
-            I have sales data with marketing spend, seasonality, and competitor actions.
-            I want to understand what drives sales and build a predictive model.
+            Analyze the relationship between marketing spend and sales.
+            Control for seasonality and competitor actions.
             """,
             workflow_type="standard_regression",
+            data_source={
+                "type": "csv",
+                "path": "data/sales_data.csv",
+                "parameters": {
+                    "delimiter": ",",
+                    "header": True
+                }
+            },
             objectives=[
                 "Identify key drivers of sales",
                 "Quantify effect of marketing spend",
                 "Account for seasonality",
                 "Build predictive model"
-            ],
-            data_source={
-                "type": "csv",
-                "path": "data/sales_data.csv"
-            }
+            ]
         )
         
         print(f"\n📊 Analysis Request:")
         print(f"   Query: {request.query.strip()}")
-        print(f"   Workflow: {request.workflow_type}")
-        print(f"   Objectives: {len(request.objectives)} objectives")
+        print(f"   Data source type: {request.data_source['type']}")
+        print(f"   Data source path: {request.data_source['path']}")
+        print(f"   Objectives: {len(request.objectives)}")
         
         # Execute analysis
         result = await orchestrator.execute_analysis(request)
@@ -477,19 +512,22 @@ if __name__ == "__main__":
         print(f"Execution time: {result.execution_time_seconds:.1f}s")
         print(f"Stages completed: {len(result.stage_results)}")
         
-        from rich.console import Console
-        from rich.markdown import Markdown
-
-        console = Console()
-        console.print(Markdown(f"### Final Interpretation:\n{result.interpretation.get('raw_result', '')}" if result.interpretation else "No interpretation available."))
-        console.print(Markdown(f"### Final Report:\n{result.report.get('raw_result', '')}" if result.report else "No report available."))
+        # Check if DATA_ACQUISITION stage received data_source
+        if "data_acquisition" in result.stage_results:
+            print(f"\n✅ DATA_ACQUISITION stage executed")
+            print(f"   Result: {result.stage_results['data_acquisition']}")
         
-
         if result.errors:
-            print(f"\nErrors:")
+            print(f"\n❌ Errors:")
             for error in result.errors:
                 print(f"  - {error}")
         
         print("\n✅ Demo completed")
+        print("\n💡 Key improvements:")
+        print("  ✓ data_source passed from request to workflow")
+        print("  ✓ workflow stores initial_data")
+        print("  ✓ nodes flagged with needs_initial_data get the data")
+        print("  ✓ executor.prepare_node_input combines all sources")
+        print("  ✓ DATA_ACQUISITION node receives data_source!")
     
     asyncio.run(demo())

@@ -1,14 +1,10 @@
 """
-Workflow Graph System for Data Science Agents
+Workflow Graph System for Data Science Agents - REFACTORED
 
-This module defines standardized workflows as directed acyclic graphs (DAGs)
-where nodes are analysis stages and edges represent dependencies.
-
-Standardized workflows ensure:
-- Statistical planning happens before modeling
-- Data processing happens before EDA
-- EDA insights inform additional data processing
-- Modeling happens after data preparation
+Key improvements:
+1. WorkflowGraph now stores initial_data from the analysis request
+2. Nodes can access both dependency outputs AND initial request data
+3. WorkflowBuilder accepts and propagates initial data to relevant nodes
 """
 
 import uuid
@@ -88,6 +84,10 @@ class WorkflowNode(BaseModel):
     input_data: Dict[str, Any] = Field(default_factory=dict)
     output_data: Optional[Dict[str, Any]] = None
     
+    # Flags for data access
+    needs_initial_data: bool = False  # NEW: Flag to indicate node needs initial request data
+    initial_data_keys: List[str] = Field(default_factory=list)  # NEW: Specific keys from initial data
+    
     # Additional metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -96,10 +96,7 @@ class WorkflowGraph(BaseModel):
     """
     A directed acyclic graph representing a data science workflow.
     
-    Enforces standard patterns:
-    - Statistical planning → Modeling
-    - Data processing → EDA → Post-EDA processing → Modeling
-    - Modeling → Diagnostics → Interpretation
+    NEW: Now includes initial_data from the analysis request that can be accessed by any node.
     """
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -108,9 +105,12 @@ class WorkflowGraph(BaseModel):
     # Graph structure
     nodes: Dict[str, WorkflowNode] = Field(default_factory=dict)
     
+    # NEW: Initial request data (query, data_source, objectives, etc.)
+    initial_data: Dict[str, Any] = Field(default_factory=dict)
+    
     # Metadata
     created_at: datetime = Field(default_factory=datetime.now)
-    workflow_type: str = "standard"  # standard, exploratory, modeling_focused, etc.
+    workflow_type: str = "standard"
     
     # Execution tracking
     current_stage: Optional[str] = None
@@ -119,28 +119,22 @@ class WorkflowGraph(BaseModel):
 
 
 # ============================================================================
-# WORKFLOW BUILDER
+# WORKFLOW BUILDER - REFACTORED
 # ============================================================================
 
 class WorkflowBuilder:
     """
     Fluent API for building standardized workflows.
     
-    Example:
-        workflow = (WorkflowBuilder("regression_analysis")
-            .add_planning_phase()
-            .add_data_phase()
-            .add_eda_phase()
-            .add_modeling_phase()
-            .add_interpretation_phase()
-            .build())
+    REFACTORED: Now accepts and propagates initial data to nodes that need it.
     """
     
-    def __init__(self, name: str, description: str = ""):
+    def __init__(self, name: str, description: str = "", initial_data: Optional[Dict[str, Any]] = None):
         self.name = name
         self.description = description
         self.nodes: Dict[str, WorkflowNode] = {}
         self._last_phase_nodes: Dict[str, List[str]] = defaultdict(list)
+        self.initial_data = initial_data or {}  # NEW: Store initial data
     
     def add_node(
         self,
@@ -150,7 +144,9 @@ class WorkflowBuilder:
         depends_on: Optional[List[str]] = None,
         required_context_types: Optional[List[str]] = None,
         context_scope: str = "current_session",
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        needs_initial_data: bool = False,  # NEW
+        initial_data_keys: Optional[List[str]] = None  # NEW
     ) -> str:
         """Add a single node to the workflow graph"""
         node = WorkflowNode(
@@ -160,7 +156,9 @@ class WorkflowBuilder:
             depends_on=depends_on or [],
             required_context_types=required_context_types or [],
             context_scope=context_scope,
-            metadata=metadata or {}
+            metadata=metadata or {},
+            needs_initial_data=needs_initial_data,
+            initial_data_keys=initial_data_keys or []
         )
         self.nodes[node.id] = node
         return node.id
@@ -170,13 +168,15 @@ class WorkflowBuilder:
         Add statistical planning phase.
         This should happen BEFORE modeling.
         """
-        # Research appropriate methods
+        # Research appropriate methods - needs query from initial data
         research_id = self.add_node(
             stage=WorkflowStage.RESEARCH,
             description="Research appropriate statistical methods and best practices",
             agent_name="statistician_agent",
             required_context_types=["user_query", "past_analyses"],
-            context_scope="include_history"
+            context_scope="include_history",
+            needs_initial_data=True,  # NEW
+            initial_data_keys=["query", "objectives"]  # NEW
         )
         
         # Plan statistical approach
@@ -186,7 +186,9 @@ class WorkflowBuilder:
             agent_name="statistician_agent",
             depends_on=[research_id],
             required_context_types=["research_findings", "data_summary"],
-            context_scope="current_session"
+            context_scope="current_session",
+            needs_initial_data=True,  # NEW
+            initial_data_keys=["query", "objectives", "data_source"]  # NEW
         )
         
         self._last_phase_nodes["planning"] = [research_id, planning_id]
@@ -195,18 +197,20 @@ class WorkflowBuilder:
     def add_data_phase(self, depends_on_planning: bool = True) -> "WorkflowBuilder":
         """
         Add data acquisition and cleaning phase.
-        This should happen BEFORE EDA.
+        CRITICAL: DATA_ACQUISITION needs data_source from initial data!
         """
         deps = self._last_phase_nodes["planning"] if depends_on_planning else []
         
-        # Acquire data
+        # Acquire data - CRITICAL: This node MUST have access to data_source
         acquisition_id = self.add_node(
             stage=WorkflowStage.DATA_ACQUISITION,
             description="Load and acquire data from specified sources",
             agent_name="data_engineer_agent",
             depends_on=deps,
             required_context_types=["data_source_spec", "loading_requirements"],
-            context_scope="current_session"
+            context_scope="current_session",
+            needs_initial_data=True,  # NEW: CRITICAL!
+            initial_data_keys=["data_source", "query"]  # NEW: CRITICAL!
         )
         
         # Validate data
@@ -245,7 +249,9 @@ class WorkflowBuilder:
             agent_name="eda_agent",
             depends_on=deps,
             required_context_types=["clean_data", "analysis_objectives", "visualization_preferences"],
-            context_scope="current_session"
+            context_scope="current_session",
+            needs_initial_data=True,  # NEW
+            initial_data_keys=["objectives"]  # NEW
         )
         
         # Feature engineering based on EDA insights
@@ -327,7 +333,9 @@ class WorkflowBuilder:
             agent_name="interpreter_agent",
             depends_on=deps,
             required_context_types=["model_result", "diagnostics", "business_context"],
-            context_scope="current_session"
+            context_scope="current_session",
+            needs_initial_data=True,  # NEW
+            initial_data_keys=["query", "objectives"]  # NEW
         )
         
         # Generate report
@@ -337,14 +345,16 @@ class WorkflowBuilder:
             agent_name="interpreter_agent",
             depends_on=[interp_id],
             required_context_types=["interpretation", "all_outputs", "reporting_requirements"],
-            context_scope="current_session"
+            context_scope="current_session",
+            needs_initial_data=True,  # NEW
+            initial_data_keys=["query", "objectives"]  # NEW
         )
         
         self._last_phase_nodes["interpretation"] = [interp_id, report_id]
         return self
     
     def build(self) -> WorkflowGraph:
-        """Build the final workflow graph"""
+        """Build the final workflow graph with initial data"""
         # Validate no cycles
         if self._has_cycle():
             raise ValueError("Workflow graph contains cycles")
@@ -352,7 +362,8 @@ class WorkflowBuilder:
         return WorkflowGraph(
             name=self.name,
             description=self.description,
-            nodes=self.nodes
+            nodes=self.nodes,
+            initial_data=self.initial_data  # NEW: Pass initial data to graph
         )
     
     def _has_cycle(self) -> bool:
@@ -383,17 +394,14 @@ class WorkflowBuilder:
 
 
 # ============================================================================
-# WORKFLOW EXECUTOR
+# WORKFLOW EXECUTOR - REFACTORED
 # ============================================================================
 
 class WorkflowExecutor:
     """
     Executes workflows by processing nodes in topological order.
     
-    Ensures:
-    - Dependencies are satisfied before execution
-    - Failed nodes don't block independent branches
-    - Context is properly scoped for each node
+    REFACTORED: Now handles initial data propagation to nodes.
     """
     
     def __init__(self, workflow: WorkflowGraph):
@@ -419,14 +427,43 @@ class WorkflowExecutor:
         
         return ready
     
+    def prepare_node_input(self, node_id: str) -> Dict[str, Any]:
+        """
+        NEW/REFACTORED: Prepare input data for a node.
+        
+        Combines:
+        1. Outputs from dependency nodes
+        2. Initial request data (if node needs it)
+        
+        This is the KEY method that fixes the data passing issue!
+        """
+        node = self.workflow.nodes[node_id]
+        input_data = {}
+        
+        # 1. Get outputs from dependency nodes
+        for dep_id in node.depends_on:
+            dep_node = self.workflow.nodes[dep_id]
+            if dep_node.output_data:
+                # Store with stage name as key
+                input_data[dep_node.stage.value] = dep_node.output_data
+        
+        # 2. NEW: Add initial data if node needs it
+        if node.needs_initial_data:
+            if node.initial_data_keys:
+                # Only include specific keys
+                for key in node.initial_data_keys:
+                    if key in self.workflow.initial_data:
+                        input_data[key] = self.workflow.initial_data[key]
+            else:
+                # Include all initial data
+                input_data.update(self.workflow.initial_data)
+        
+        return input_data
+    
     def get_execution_order(self) -> List[List[str]]:
         """
         Get nodes in topological order, grouped by execution level.
         Nodes in the same level can be executed in parallel.
-        
-        Returns:
-            List of lists, where each inner list contains node IDs that
-            can be executed in parallel.
         """
         # Compute in-degree for each node
         in_degree = {node_id: len(node.depends_on) 
@@ -503,14 +540,19 @@ class WorkflowExecutor:
 
 
 # ============================================================================
-# STANDARD WORKFLOWS
+# STANDARD WORKFLOWS - REFACTORED
 # ============================================================================
 
-def create_standard_regression_workflow() -> WorkflowGraph:
-    """Create standard workflow for regression analysis"""
+def create_standard_regression_workflow(initial_data: Optional[Dict[str, Any]] = None) -> WorkflowGraph:
+    """
+    Create standard workflow for regression analysis.
+    
+    NEW: Accepts initial_data to pass through to nodes.
+    """
     return (WorkflowBuilder(
         name="standard_regression",
-        description="Complete regression analysis workflow"
+        description="Complete regression analysis workflow",
+        initial_data=initial_data  # NEW!
     )
     .add_planning_phase()
     .add_data_phase()
@@ -520,11 +562,12 @@ def create_standard_regression_workflow() -> WorkflowGraph:
     .build())
 
 
-def create_exploratory_workflow() -> WorkflowGraph:
+def create_exploratory_workflow(initial_data: Optional[Dict[str, Any]] = None) -> WorkflowGraph:
     """Create workflow focused on exploration (no modeling)"""
     return (WorkflowBuilder(
         name="exploratory_analysis",
-        description="Exploratory analysis without modeling"
+        description="Exploratory analysis without modeling",
+        initial_data=initial_data  # NEW!
     )
     .add_data_phase(depends_on_planning=False)
     .add_eda_phase()
@@ -532,11 +575,12 @@ def create_exploratory_workflow() -> WorkflowGraph:
     .build())
 
 
-def create_modeling_focused_workflow() -> WorkflowGraph:
+def create_modeling_focused_workflow(initial_data: Optional[Dict[str, Any]] = None) -> WorkflowGraph:
     """Create workflow assuming data is already prepared"""
     return (WorkflowBuilder(
         name="modeling_focused",
-        description="Modeling workflow with pre-prepared data"
+        description="Modeling workflow with pre-prepared data",
+        initial_data=initial_data  # NEW!
     )
     .add_planning_phase()
     .add_modeling_phase()
@@ -549,11 +593,32 @@ def create_modeling_focused_workflow() -> WorkflowGraph:
 # ============================================================================
 
 if __name__ == "__main__":
-    # Create a standard regression workflow
-    workflow = create_standard_regression_workflow()
+    # Create a standard regression workflow WITH initial data
+    initial_data = {
+        "query": "Analyze sales data",
+        "data_source": {
+            "type": "csv",
+            "path": "/data/sales.csv",
+            "parameters": {"delimiter": ","}
+        },
+        "objectives": [
+            "Identify key drivers",
+            "Build predictive model"
+        ]
+    }
+    
+    workflow = create_standard_regression_workflow(initial_data=initial_data)
     
     print(f"Created workflow: {workflow.name}")
     print(f"Total nodes: {len(workflow.nodes)}")
+    print(f"Initial data keys: {list(workflow.initial_data.keys())}")
+    
+    # Find the data acquisition node and check it has access to data_source
+    for node in workflow.nodes.values():
+        if node.stage == WorkflowStage.DATA_ACQUISITION:
+            print(f"\nData Acquisition Node:")
+            print(f"  needs_initial_data: {node.needs_initial_data}")
+            print(f"  initial_data_keys: {node.initial_data_keys}")
     
     # Get execution order
     executor = WorkflowExecutor(workflow)
@@ -564,4 +629,8 @@ if __name__ == "__main__":
         print(f"  Level {i}: {len(level)} nodes")
         for node_id in level:
             node = workflow.nodes[node_id]
-            print(f"    - {node.stage.value}: {node.description[:50]}...")
+            # Prepare input to see what data node will receive
+            input_data = executor.prepare_node_input(node_id)
+            print(f"    - {node.stage.value}")
+            if input_data:
+                print(f"      Input keys: {list(input_data.keys())}")

@@ -19,6 +19,7 @@ from datascienceagent.core.context_aware_agent import (
     TargetedContext,
     ContextType,
 )
+from datascienceagent.agents.data_engineer_helper import DataEngineerAgentHelper
 
 
 # ============================================================================
@@ -139,6 +140,7 @@ class DataEngineerAgent(ContextAwareAgent):
             context_manager=context_manager,
             enable_code_execution=True,
         )
+        self.helper = DataEngineerAgentHelper()
 
     def get_system_prompt(self) -> str:
         return """You are a data engineering specialist.
@@ -177,15 +179,9 @@ Always test code on sample data first."""
         Returns:
             Dict with loaded data info and loading code
         """
-        task = f"""Load data from source:
-Type: {data_source.get('type')}
-Location: {data_source.get('location')}
-Parameters: {data_source.get('parameters', {})}
+        
 
-Generate Python code to load this data using appropriate libraries.
-Include error handling and data validation."""
-
-        return await self.execute_with_context(task, workflow_node)
+        return self.helper.load_data_from_source(data_source)
 
     async def clean_data(
         self,
