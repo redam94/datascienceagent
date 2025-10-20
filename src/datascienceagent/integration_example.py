@@ -226,7 +226,7 @@ Return a JSON object with:
             result = await self.planner.run(planning_prompt)
             
             # Parse result
-            plan_data = result.data
+            plan_data = result.output
             if isinstance(plan_data, str):
                 import json
                 plan_data = json.loads(plan_data)
@@ -300,7 +300,7 @@ Return JSON:
             
             try:
                 result = await self.planner.run(recovery_prompt)
-                decision = result.data
+                decision = result.output
                 if isinstance(decision, str):
                     import json
                     decision = json.loads(decision)
@@ -343,7 +343,7 @@ Return JSON:
 
 FAILED NODE: {failed_node_id}
 ERROR: {error}
-ORIGINAL PLAN: {original_plan.dict()}
+ORIGINAL PLAN: {original_plan.model_dump()}
 REMAINING NODES: {[n for n in original_plan.nodes_to_execute 
                    if n != failed_node_id]}
 
@@ -363,7 +363,7 @@ Return adapted plan as JSON:
         
         try:
             result = await self.planner.run(adaptation_prompt)
-            adapted_data = result.data
+            adapted_data = result.output
             if isinstance(adapted_data, str):
                 import json
                 adapted_data = json.loads(adapted_data)
@@ -995,8 +995,8 @@ async def example_complex_modeling_with_recovery():
     recovery_policy = WorkflowRecoveryPolicy(
         enable_node_retry=True,
         max_node_retries=5,
-        allow_node_skip=True,
-        stop_on_critical_error=False,
+        allow_node_skip=False,
+        stop_on_critical_error=True,
         max_failed_nodes=10
     )
     
@@ -1010,7 +1010,9 @@ async def example_complex_modeling_with_recovery():
     # Complex modeling query - will use full workflow
     request = AgenticAnalysisRequest(
         query="""Build a predictive model for sales revenue based on advertising spend.
-        Include feature engineering, model comparison, and performance validation.""",
+        Include feature engineering, model comparison, and performance validation.
+        Provide the data path from the model context in the outputs of each stage.
+        Make sure to save all plots and model artifacts.""",
         data_source={"type": "csv", "path": "data/sales_data.csv"},
         enable_adaptive_workflow=True,
         enable_error_recovery=True,
@@ -1073,8 +1075,8 @@ async def main():
     
     # Run examples
     # await example_simple_agentic_analysis()
-    # await example_complex_modeling_with_recovery()
-    await example_non_agentic_mode()
+    await example_complex_modeling_with_recovery()
+    # await example_non_agentic_mode()
 
 
 if __name__ == "__main__":
