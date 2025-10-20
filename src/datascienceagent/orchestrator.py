@@ -148,7 +148,8 @@ class WorkflowOrchestrator:
                 level_results = await self._execute_level(
                     workflow,
                     executor,
-                    node_ids
+                    node_ids,
+                    level_idx=level_idx
                 )
                 
                 # Store results
@@ -224,7 +225,8 @@ class WorkflowOrchestrator:
         self,
         workflow: WorkflowGraph,
         executor: WorkflowExecutor,
-        node_ids: List[str]
+        node_ids: List[str],
+        level_idx: int = 0
     ) -> Dict[str, Dict[str, Any]]:
         """
         Execute all nodes in a level.
