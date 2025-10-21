@@ -1,0 +1,19 @@
+{
+  "n_rows": 208,
+  "n_columns": 5,
+  "memory_usage_mb": 0.018177032470703125,
+  "column_names": [
+    "date",
+    "seasonal_factor",
+    "media_activity",
+    "competitor_actions",
+    "sales"
+  ],
+  "dtypes": {
+    "date": "object",
+    "seasonal_factor": "float64",
+    "media_activity": "float64",
+    "competitor_actions": "float64",
+    "sales": "float64"
+  }
+}

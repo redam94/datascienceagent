@@ -837,6 +837,12 @@ class ContextManager:
             }
         )
         return base_stats
+    
+    def end_session(self):
+        """End the current session"""
+        logger.info(f"🛑 Ending session: {self.current_session_id}")
+        self.current_session_id = None
+        self.current_topic_id = None
 
 
 # ============================================================================

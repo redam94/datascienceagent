@@ -1,0 +1,12 @@
+{
+  "numeric": [
+    "seasonal_factor",
+    "media_activity",
+    "competitor_actions",
+    "sales"
+  ],
+  "categorical": [
+    "date"
+  ],
+  "datetime": []
+}

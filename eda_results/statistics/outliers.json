@@ -1,0 +1,50 @@
+{
+  "seasonal_factor": {
+    "iqr_method": {
+      "count": 0,
+      "percent": 0.0,
+      "lower_bound": 0.7262121277106512,
+      "upper_bound": 1.2737878722893488
+    },
+    "zscore_method": {
+      "count": 0,
+      "percent": 0.0
+    }
+  },
+  "media_activity": {
+    "iqr_method": {
+      "count": 4,
+      "percent": 1.9230769230769231,
+      "lower_bound": -5.087067547807254,
+      "upper_bound": 5.48485093805788
+    },
+    "zscore_method": {
+      "count": 2,
+      "percent": 0.9615384615384616
+    }
+  },
+  "competitor_actions": {
+    "iqr_method": {
+      "count": 3,
+      "percent": 1.4423076923076923,
+      "lower_bound": 36.27222696273917,
+      "upper_bound": 63.62053640808479
+    },
+    "zscore_method": {
+      "count": 1,
+      "percent": 0.4807692307692308
+    }
+  },
+  "sales": {
+    "iqr_method": {
+      "count": 2,
+      "percent": 0.9615384615384616,
+      "lower_bound": -5.223704971168527,
+      "upper_bound": 68.08991795829144
+    },
+    "zscore_method": {
+      "count": 0,
+      "percent": 0.0
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "overall": {
+    "total_cells": 1040,
+    "missing_cells": 0,
+    "missing_percent": 0.0,
+    "complete_rows": 208,
+    "complete_rows_percent": 100.0
+  },
+  "by_column": {
+    "date": {
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "unique_percent": 100.0
+    },
+    "seasonal_factor": {
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 29,
+      "unique_percent": 13.942307692307693
+    },
+    "media_activity": {
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "unique_percent": 100.0
+    },
+    "competitor_actions": {
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "unique_percent": 100.0
+    },
+    "sales": {
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "unique_percent": 100.0
+    }
+  },
+  "duplicates": {
+    "duplicate_rows": 0,
+    "duplicate_percent": 0.0
+  }
+}

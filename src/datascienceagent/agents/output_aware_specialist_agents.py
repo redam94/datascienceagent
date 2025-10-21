@@ -52,7 +52,7 @@ class OutputAwareStatisticianAgent(OutputContextAwareAgent):
         output_manager: Optional[OutputManager] = None,
     ):
         super().__init__(
-            name="statistician_agent",
+            name="statistician",
             model=model,
             context_manager=context_manager,
             output_manager=output_manager,
@@ -166,7 +166,7 @@ class OutputAwareDataEngineerAgent(OutputContextAwareAgent):
         output_manager: Optional[OutputManager] = None,
     ):
         super().__init__(
-            name="data_engineer_agent",
+            name="data_engineer",
             model=model,
             context_manager=context_manager,
             output_manager=output_manager,
@@ -375,7 +375,7 @@ class OutputAwareEDAAgent(OutputContextAwareAgent):
         output_manager: Optional[OutputManager] = None,
     ):
         super().__init__(
-            name="eda_agent",
+            name="eda",
             model=model,
             context_manager=context_manager,
             output_manager=output_manager,
@@ -533,7 +533,7 @@ class OutputAwareModelingAgent(OutputContextAwareAgent):
         output_manager: Optional[OutputManager] = None,
     ):
         super().__init__(
-            name="modeling_agent",
+            name="modeling",
             model=model,
             context_manager=context_manager,
             output_manager=output_manager,
@@ -754,7 +754,7 @@ class OutputAwareInterpreterAgent(OutputContextAwareAgent):
         output_manager: Optional[OutputManager] = None,
     ):
         super().__init__(
-            name="interpreter_agent",
+            name="interpreter",
             model=model,
             context_manager=context_manager,
             output_manager=output_manager,

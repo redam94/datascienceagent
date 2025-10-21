@@ -39,6 +39,7 @@ class WorkflowStage(str, Enum):
     POST_EDA_PROCESSING = "post_eda_processing"
     
     # Modeling phase
+    MODELING = "modeling"
     MODEL_SPECIFICATION = "model_specification"
     MODEL_FITTING = "model_fitting"
     MODEL_DIAGNOSTICS = "model_diagnostics"
@@ -172,7 +173,7 @@ class WorkflowBuilder:
         research_id = self.add_node(
             stage=WorkflowStage.RESEARCH,
             description="Research appropriate statistical methods and best practices",
-            agent_name="statistician_agent",
+            agent_name="statistician",
             required_context_types=["user_query", "past_analyses"],
             context_scope="include_history",
             needs_initial_data=True,  # NEW
@@ -183,7 +184,7 @@ class WorkflowBuilder:
         planning_id = self.add_node(
             stage=WorkflowStage.STATISTICAL_PLANNING,
             description="Plan statistical analysis approach and validation strategy",
-            agent_name="statistician_agent",
+            agent_name="statistician",
             depends_on=[research_id],
             required_context_types=["research_findings", "data_summary"],
             context_scope="current_session",
@@ -205,7 +206,7 @@ class WorkflowBuilder:
         acquisition_id = self.add_node(
             stage=WorkflowStage.DATA_ACQUISITION,
             description="Load and acquire data from specified sources",
-            agent_name="data_engineer_agent",
+            agent_name="data_engineer",
             depends_on=deps,
             required_context_types=["data_source_spec", "loading_requirements"],
             context_scope="current_session",
@@ -217,7 +218,7 @@ class WorkflowBuilder:
         validation_id = self.add_node(
             stage=WorkflowStage.DATA_VALIDATION,
             description="Validate data quality and schema",
-            agent_name="data_engineer_agent",
+            agent_name="data_engineer",
             depends_on=[acquisition_id],
             required_context_types=["data_quality_checks", "expected_schema"],
             context_scope="current_session"
@@ -227,7 +228,7 @@ class WorkflowBuilder:
         cleaning_id = self.add_node(
             stage=WorkflowStage.DATA_CLEANING,
             description="Clean and preprocess data",
-            agent_name="data_engineer_agent",
+            agent_name="data_engineer",
             depends_on=[validation_id],
             required_context_types=["validation_report", "cleaning_strategies"],
             context_scope="include_history"
@@ -246,7 +247,7 @@ class WorkflowBuilder:
         eda_id = self.add_node(
             stage=WorkflowStage.EDA,
             description="Perform exploratory data analysis and visualization",
-            agent_name="eda_agent",
+            agent_name="eda",
             depends_on=deps,
             required_context_types=["clean_data", "analysis_objectives", "visualization_preferences"],
             context_scope="current_session",
@@ -258,7 +259,7 @@ class WorkflowBuilder:
         feature_eng_id = self.add_node(
             stage=WorkflowStage.FEATURE_ENGINEERING,
             description="Engineer features based on EDA insights",
-            agent_name="data_engineer_agent",
+            agent_name="data_engineer",
             depends_on=[eda_id],
             required_context_types=["eda_insights", "feature_suggestions", "domain_knowledge"],
             context_scope="current_session"
@@ -268,7 +269,7 @@ class WorkflowBuilder:
         post_eda_id = self.add_node(
             stage=WorkflowStage.POST_EDA_PROCESSING,
             description="Additional data processing based on EDA findings",
-            agent_name="data_engineer_agent",
+            agent_name="data_engineer",
             depends_on=[feature_eng_id],
             required_context_types=["eda_findings", "transformation_needs"],
             context_scope="current_session"
@@ -290,7 +291,7 @@ class WorkflowBuilder:
         spec_id = self.add_node(
             stage=WorkflowStage.MODEL_SPECIFICATION,
             description="Specify model structure and parameters",
-            agent_name="modeling_agent",
+            agent_name="modeling",
             depends_on=deps,
             required_context_types=["plan", "processed_data", "eda_insights"],
             context_scope="current_session"
@@ -300,7 +301,7 @@ class WorkflowBuilder:
         fit_id = self.add_node(
             stage=WorkflowStage.MODEL_FITTING,
             description="Fit statistical model and estimate parameters",
-            agent_name="modeling_agent",
+            agent_name="modeling",
             depends_on=[spec_id],
             required_context_types=["model_spec", "training_data", "code_chunk"],
             context_scope="include_history"
@@ -310,7 +311,7 @@ class WorkflowBuilder:
         diagnostics_id = self.add_node(
             stage=WorkflowStage.MODEL_DIAGNOSTICS,
             description="Run model diagnostics and validation checks",
-            agent_name="modeling_agent",
+            agent_name="modeling",
             depends_on=[fit_id],
             required_context_types=["fitted_model", "diagnostic_procedures"],
             context_scope="include_history"
@@ -330,7 +331,7 @@ class WorkflowBuilder:
         interp_id = self.add_node(
             stage=WorkflowStage.INTERPRETATION,
             description="Interpret model results and assess practical significance",
-            agent_name="interpreter_agent",
+            agent_name="interpreter",
             depends_on=deps,
             required_context_types=["model_result", "diagnostics", "business_context"],
             context_scope="current_session",
@@ -342,7 +343,7 @@ class WorkflowBuilder:
         report_id = self.add_node(
             stage=WorkflowStage.REPORT_GENERATION,
             description="Generate comprehensive analysis report",
-            agent_name="interpreter_agent",
+            agent_name="interpreter",
             depends_on=[interp_id],
             required_context_types=["interpretation", "all_outputs", "reporting_requirements"],
             context_scope="current_session",

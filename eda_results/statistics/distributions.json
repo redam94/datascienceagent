@@ -1,0 +1,38 @@
+{
+  "seasonal_factor": {
+    "skewness": 0.0,
+    "kurtosis": -1.5072815533980584,
+    "is_normal": null,
+    "is_symmetric": true,
+    "is_heavy_tailed": false,
+    "is_light_tailed": true,
+    "shape": "symmetric"
+  },
+  "media_activity": {
+    "skewness": -0.44618336753465554,
+    "kurtosis": 0.3662134281601199,
+    "is_normal": null,
+    "is_symmetric": true,
+    "is_heavy_tailed": false,
+    "is_light_tailed": true,
+    "shape": "symmetric"
+  },
+  "competitor_actions": {
+    "skewness": -0.2567969495206634,
+    "kurtosis": 0.038026861896991004,
+    "is_normal": null,
+    "is_symmetric": true,
+    "is_heavy_tailed": false,
+    "is_light_tailed": true,
+    "shape": "symmetric"
+  },
+  "sales": {
+    "skewness": 0.09985657383547925,
+    "kurtosis": -0.01429311156854407,
+    "is_normal": null,
+    "is_symmetric": true,
+    "is_heavy_tailed": false,
+    "is_light_tailed": true,
+    "shape": "symmetric"
+  }
+}

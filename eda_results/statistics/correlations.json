@@ -1,0 +1,55 @@
+{
+  "pearson": {
+    "seasonal_factor": {
+      "seasonal_factor": 1.0,
+      "media_activity": 0.06303253213983051,
+      "competitor_actions": 0.09725162553066152,
+      "sales": 0.1300603406299072
+    },
+    "media_activity": {
+      "seasonal_factor": 0.06303253213983051,
+      "media_activity": 1.0,
+      "competitor_actions": 0.12657703016719005,
+      "sales": 0.6716348088454073
+    },
+    "competitor_actions": {
+      "seasonal_factor": 0.09725162553066152,
+      "media_activity": 0.12657703016719005,
+      "competitor_actions": 1.0,
+      "sales": -0.6299394437886419
+    },
+    "sales": {
+      "seasonal_factor": 0.1300603406299072,
+      "media_activity": 0.6716348088454073,
+      "competitor_actions": -0.6299394437886419,
+      "sales": 1.0
+    }
+  },
+  "spearman": {
+    "seasonal_factor": {
+      "seasonal_factor": 1.0,
+      "media_activity": 0.06511129095502091,
+      "competitor_actions": 0.05684861288817889,
+      "sales": 0.1444047108658553
+    },
+    "media_activity": {
+      "seasonal_factor": 0.06511129095502091,
+      "media_activity": 1.0,
+      "competitor_actions": 0.09737002128306477,
+      "sales": 0.6684362548206941
+    },
+    "competitor_actions": {
+      "seasonal_factor": 0.05684861288817889,
+      "media_activity": 0.09737002128306477,
+      "competitor_actions": 1.0,
+      "sales": -0.6187464328196594
+    },
+    "sales": {
+      "seasonal_factor": 0.1444047108658553,
+      "media_activity": 0.6684362548206941,
+      "competitor_actions": -0.6187464328196594,
+      "sales": 1.0
+    }
+  },
+  "strong_correlations": []
+}
