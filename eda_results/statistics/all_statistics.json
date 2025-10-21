@@ -1,0 +1,388 @@
+{
+  "basic_info": {
+    "n_rows": 208,
+    "n_columns": 5,
+    "memory_usage_mb": 0.018177032470703125,
+    "column_names": [
+      "date",
+      "seasonal_factor",
+      "media_activity",
+      "competitor_actions",
+      "sales"
+    ],
+    "dtypes": {
+      "date": "object",
+      "seasonal_factor": "float64",
+      "media_activity": "float64",
+      "competitor_actions": "float64",
+      "sales": "float64"
+    }
+  },
+  "column_types": {
+    "numeric": [
+      "seasonal_factor",
+      "media_activity",
+      "competitor_actions",
+      "sales"
+    ],
+    "categorical": [
+      "date"
+    ],
+    "datetime": []
+  },
+  "numeric_descriptive": {
+    "standard": {
+      "seasonal_factor": {
+        "count": 208.0,
+        "mean": 1.0,
+        "std": 0.07088127107615934,
+        "min": 0.9,
+        "25%": 0.9315530319276628,
+        "50%": 1.0,
+        "75%": 1.0684469680723372,
+        "max": 1.1
+      },
+      "media_activity": {
+        "count": 208.0,
+        "mean": 0.2782882663718121,
+        "std": 2.0359897184633926,
+        "min": -6.342089151812225,
+        "25%": -1.1225981156078289,
+        "50%": 0.5790108024129639,
+        "75%": 1.5203815058584547,
+        "max": 4.992552272170555
+      },
+      "competitor_actions": {
+        "count": 208.0,
+        "mean": 49.79769869833229,
+        "std": 4.999628195926928,
+        "min": 34.56441948886064,
+        "25%": 46.52784300474377,
+        "50%": 50.016176962830706,
+        "75%": 53.36492036608018,
+        "max": 60.67219332798538
+      },
+      "sales": {
+        "count": 208.0,
+        "mean": 31.74579710124662,
+        "std": 13.486909803307995,
+        "min": -6.794777125975149,
+        "25%": 22.268903627378958,
+        "50%": 29.869387570180386,
+        "75%": 40.597309359743946,
+        "max": 69.55253449539813
+      }
+    },
+    "seasonal_factor": {
+      "mean": 1.0,
+      "median": 1.0,
+      "mode": 0.9007291125901946,
+      "std": 0.07088127107615934,
+      "var": 0.005024154589371983,
+      "min": 0.9,
+      "max": 1.1,
+      "range": 0.20000000000000007,
+      "q1": 0.9315530319276628,
+      "q3": 1.0684469680723372,
+      "iqr": 0.13689393614467438,
+      "skewness": 0.0,
+      "kurtosis": -1.5072815533980584,
+      "cv": 0.07088127107615934,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 29,
+      "zero_count": 0,
+      "positive_count": 208,
+      "negative_count": 0
+    },
+    "media_activity": {
+      "mean": 0.2782882663718121,
+      "median": 0.5790108024129639,
+      "mode": -6.342089151812225,
+      "std": 2.0359897184633926,
+      "var": 4.145254133688645,
+      "min": -6.342089151812225,
+      "max": 4.992552272170555,
+      "range": 11.33464142398278,
+      "q1": -1.1225981156078289,
+      "q3": 1.5203815058584547,
+      "iqr": 2.6429796214662833,
+      "skewness": -0.44618336753465554,
+      "kurtosis": 0.3662134281601199,
+      "cv": 7.316117725722477,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "zero_count": 0,
+      "positive_count": 124,
+      "negative_count": 84
+    },
+    "competitor_actions": {
+      "mean": 49.79769869833229,
+      "median": 50.016176962830706,
+      "mode": 34.56441948886064,
+      "std": 4.999628195926928,
+      "var": 24.996282097507553,
+      "min": 34.56441948886064,
+      "max": 60.67219332798538,
+      "range": 26.10777383912474,
+      "q1": 46.52784300474377,
+      "q3": 53.36492036608018,
+      "iqr": 6.837077361336405,
+      "skewness": -0.2567969495206634,
+      "kurtosis": 0.038026861896991004,
+      "cv": 0.10039877999611987,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "zero_count": 0,
+      "positive_count": 208,
+      "negative_count": 0
+    },
+    "sales": {
+      "mean": 31.74579710124662,
+      "median": 29.869387570180386,
+      "mode": -6.794777125975149,
+      "std": 13.486909803307995,
+      "var": 181.8967360425653,
+      "min": -6.794777125975149,
+      "max": 69.55253449539813,
+      "range": 76.34731162137328,
+      "q1": 22.268903627378958,
+      "q3": 40.597309359743946,
+      "iqr": 18.32840573236499,
+      "skewness": 0.09985657383547925,
+      "kurtosis": -0.01429311156854407,
+      "cv": 0.4248407989345582,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "unique_count": 208,
+      "zero_count": 0,
+      "positive_count": 204,
+      "negative_count": 4
+    }
+  },
+  "categorical_descriptive": {
+    "date": {
+      "unique_count": 208,
+      "most_frequent": "2020-01-06",
+      "most_frequent_count": 1,
+      "most_frequent_percent": 0.4807692307692308,
+      "missing_count": 0,
+      "missing_percent": 0.0,
+      "value_counts": {
+        "2020-01-06": 1,
+        "2020-01-13": 1,
+        "2022-07-18": 1,
+        "2022-07-25": 1,
+        "2022-08-01": 1,
+        "2022-08-08": 1,
+        "2022-08-15": 1,
+        "2022-08-22": 1,
+        "2022-08-29": 1,
+        "2022-09-05": 1,
+        "2022-09-12": 1,
+        "2022-09-19": 1,
+        "2022-09-26": 1,
+        "2022-10-03": 1,
+        "2022-10-10": 1,
+        "2022-10-17": 1,
+        "2022-10-24": 1,
+        "2022-10-31": 1,
+        "2022-11-07": 1,
+        "2022-11-14": 1
+      },
+      "entropy": 7.700439718141091,
+      "is_constant": false,
+      "has_many_categories": true
+    }
+  },
+  "correlations": {
+    "pearson": {
+      "seasonal_factor": {
+        "seasonal_factor": 1.0,
+        "media_activity": 0.06303253213983051,
+        "competitor_actions": 0.09725162553066152,
+        "sales": 0.1300603406299072
+      },
+      "media_activity": {
+        "seasonal_factor": 0.06303253213983051,
+        "media_activity": 1.0,
+        "competitor_actions": 0.12657703016719005,
+        "sales": 0.6716348088454073
+      },
+      "competitor_actions": {
+        "seasonal_factor": 0.09725162553066152,
+        "media_activity": 0.12657703016719005,
+        "competitor_actions": 1.0,
+        "sales": -0.6299394437886419
+      },
+      "sales": {
+        "seasonal_factor": 0.1300603406299072,
+        "media_activity": 0.6716348088454073,
+        "competitor_actions": -0.6299394437886419,
+        "sales": 1.0
+      }
+    },
+    "spearman": {
+      "seasonal_factor": {
+        "seasonal_factor": 1.0,
+        "media_activity": 0.06511129095502091,
+        "competitor_actions": 0.05684861288817889,
+        "sales": 0.1444047108658553
+      },
+      "media_activity": {
+        "seasonal_factor": 0.06511129095502091,
+        "media_activity": 1.0,
+        "competitor_actions": 0.09737002128306477,
+        "sales": 0.6684362548206941
+      },
+      "competitor_actions": {
+        "seasonal_factor": 0.05684861288817889,
+        "media_activity": 0.09737002128306477,
+        "competitor_actions": 1.0,
+        "sales": -0.6187464328196594
+      },
+      "sales": {
+        "seasonal_factor": 0.1444047108658553,
+        "media_activity": 0.6684362548206941,
+        "competitor_actions": -0.6187464328196594,
+        "sales": 1.0
+      }
+    },
+    "strong_correlations": []
+  },
+  "data_quality": {
+    "overall": {
+      "total_cells": 1040,
+      "missing_cells": 0,
+      "missing_percent": 0.0,
+      "complete_rows": 208,
+      "complete_rows_percent": 100.0
+    },
+    "by_column": {
+      "date": {
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unique_count": 208,
+        "unique_percent": 100.0
+      },
+      "seasonal_factor": {
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unique_count": 29,
+        "unique_percent": 13.942307692307693
+      },
+      "media_activity": {
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unique_count": 208,
+        "unique_percent": 100.0
+      },
+      "competitor_actions": {
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unique_count": 208,
+        "unique_percent": 100.0
+      },
+      "sales": {
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unique_count": 208,
+        "unique_percent": 100.0
+      }
+    },
+    "duplicates": {
+      "duplicate_rows": 0,
+      "duplicate_percent": 0.0
+    }
+  },
+  "outliers": {
+    "seasonal_factor": {
+      "iqr_method": {
+        "count": 0,
+        "percent": 0.0,
+        "lower_bound": 0.7262121277106512,
+        "upper_bound": 1.2737878722893488
+      },
+      "zscore_method": {
+        "count": 0,
+        "percent": 0.0
+      }
+    },
+    "media_activity": {
+      "iqr_method": {
+        "count": 4,
+        "percent": 1.9230769230769231,
+        "lower_bound": -5.087067547807254,
+        "upper_bound": 5.48485093805788
+      },
+      "zscore_method": {
+        "count": 2,
+        "percent": 0.9615384615384616
+      }
+    },
+    "competitor_actions": {
+      "iqr_method": {
+        "count": 3,
+        "percent": 1.4423076923076923,
+        "lower_bound": 36.27222696273917,
+        "upper_bound": 63.62053640808479
+      },
+      "zscore_method": {
+        "count": 1,
+        "percent": 0.4807692307692308
+      }
+    },
+    "sales": {
+      "iqr_method": {
+        "count": 2,
+        "percent": 0.9615384615384616,
+        "lower_bound": -5.223704971168527,
+        "upper_bound": 68.08991795829144
+      },
+      "zscore_method": {
+        "count": 0,
+        "percent": 0.0
+      }
+    }
+  },
+  "distributions": {
+    "seasonal_factor": {
+      "skewness": 0.0,
+      "kurtosis": -1.5072815533980584,
+      "is_normal": null,
+      "is_symmetric": true,
+      "is_heavy_tailed": false,
+      "is_light_tailed": true,
+      "shape": "symmetric"
+    },
+    "media_activity": {
+      "skewness": -0.44618336753465554,
+      "kurtosis": 0.3662134281601199,
+      "is_normal": null,
+      "is_symmetric": true,
+      "is_heavy_tailed": false,
+      "is_light_tailed": true,
+      "shape": "symmetric"
+    },
+    "competitor_actions": {
+      "skewness": -0.2567969495206634,
+      "kurtosis": 0.038026861896991004,
+      "is_normal": null,
+      "is_symmetric": true,
+      "is_heavy_tailed": false,
+      "is_light_tailed": true,
+      "shape": "symmetric"
+    },
+    "sales": {
+      "skewness": 0.09985657383547925,
+      "kurtosis": -0.01429311156854407,
+      "is_normal": null,
+      "is_symmetric": true,
+      "is_heavy_tailed": false,
+      "is_light_tailed": true,
+      "shape": "symmetric"
+    }
+  }
+}

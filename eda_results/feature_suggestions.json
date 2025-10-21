@@ -1,0 +1,17 @@
+[
+  {
+    "type": "binning",
+    "suggestion": "Create categorical bins for media_activity",
+    "reasoning": "media_activity has many unique values, binning may capture non-linear patterns"
+  },
+  {
+    "type": "binning",
+    "suggestion": "Create categorical bins for competitor_actions",
+    "reasoning": "competitor_actions has many unique values, binning may capture non-linear patterns"
+  },
+  {
+    "type": "binning",
+    "suggestion": "Create categorical bins for sales",
+    "reasoning": "sales has many unique values, binning may capture non-linear patterns"
+  }
+]
